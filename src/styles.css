@@ -1,57 +1,141 @@
 /**
- * Global Styles
- * Windows 2.0 base styling for Reversi
+ * Global Styles for Modern Reversi Application
+ * Combining Tailwind CSS with Angular Material
  */
 
-/* Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* Tailwind CSS base layers */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base layer customizations */
+@layer base {
+  html,
+  body {
+    @apply h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900;
+    @apply text-slate-100 antialiased;
+  }
+
+  body {
+    @apply min-h-screen flex flex-col;
+  }
 }
 
-/* Windows 2.0 desktop background */
-html,
-body {
-  height: 100%;
-  background-color: #008080;
-  /* Classic teal desktop */
-  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  font-size: 12px;
+/* Component layer - reusable game-specific components */
+@layer components {
+  /* Game container */
+  .game-container {
+    @apply flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8;
+  }
+
+  /* Glass morphism card effect */
+  .glass-card {
+    @apply bg-white/10 backdrop-blur-lg rounded-2xl;
+    @apply border border-white/20 shadow-2xl;
+  }
+
+  /* Game piece base */
+  .game-piece {
+    @apply rounded-full shadow-lg transition-all duration-300;
+    @apply transform-gpu;
+  }
+
+  /* Valid move indicator */
+  .valid-move-indicator {
+    @apply absolute inset-2 rounded-full;
+    @apply bg-white/20 border-2 border-dashed border-white/40;
+    @apply animate-pulse-hint;
+  }
+
+  /* Score badge */
+  .score-badge {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-full;
+    @apply bg-white/10 backdrop-blur-sm border border-white/20;
+    @apply font-medium text-sm;
+  }
 }
 
-body {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
+/* Utility layer */
+@layer utilities {
+  /* Piece shadows for 3D effect */
+  .piece-shadow-black {
+    box-shadow: 
+      inset -4px -4px 8px rgba(0, 0, 0, 0.6),
+      inset 4px 4px 8px rgba(255, 255, 255, 0.1),
+      0 4px 12px rgba(0, 0, 0, 0.4);
+  }
+
+  .piece-shadow-white {
+    box-shadow: 
+      inset -4px -4px 8px rgba(0, 0, 0, 0.15),
+      inset 4px 4px 8px rgba(255, 255, 255, 0.8),
+      0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Board cell hover effect */
+  .cell-hover {
+    @apply transition-all duration-200;
+  }
+
+  .cell-hover:hover {
+    @apply bg-white/10;
+  }
+
+  /* Smooth transition for pieces */
+  .piece-transition {
+    @apply transition-all duration-300 ease-out;
+  }
 }
 
-/* Windows 2.0 style button base */
-button {
-  font-family: inherit;
-  font-size: inherit;
+/* Animation keyframes for game interactions */
+@keyframes piece-appear {
+  0% {
+    transform: scale(0) rotateY(180deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.1) rotateY(0deg);
+  }
+  100% {
+    transform: scale(1) rotateY(0deg);
+    opacity: 1;
+  }
 }
 
-/* Disable text selection for UI elements */
-.window,
-.menu-bar,
-.status-bar {
-  user-select: none;
+@keyframes piece-flip {
+  0% {
+    transform: rotateY(0deg) scale(1);
+  }
+  50% {
+    transform: rotateY(90deg) scale(0.9);
+  }
+  100% {
+    transform: rotateY(0deg) scale(1);
+  }
 }
 
-/* Focus styles */
-button:focus {
-  outline: 1px dotted #000000;
-  outline-offset: -4px;
+.animate-piece-appear {
+  animation: piece-appear 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-/* Classic Windows cursors */
-.crosshair {
-  cursor: crosshair;
+.animate-piece-flip {
+  animation: piece-flip 0.5s ease-in-out forwards;
 }
 
-/* Underline for menu accelerators */
-u {
-  text-decoration: underline;
+/* Focus visible for accessibility */
+:focus-visible {
+  @apply outline-none ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  @apply w-2;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-800 rounded;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-600 rounded hover:bg-slate-500;
 }

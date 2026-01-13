@@ -1,0 +1,44 @@
+// Custom Material 3 Theme for Reversi
+// Modern teal/emerald color palette fitting a game aesthetic
+
+@use '@angular/material' as mat;
+
+// Apply Material 3 theme with custom settings
+html {
+  // Use modern Material 3 theming
+  @include mat.theme((
+    color: (
+      theme-type: light,
+      primary: mat.$cyan-palette,
+      tertiary: mat.$violet-palette,
+    ),
+    typography: Roboto,
+    density: 0,
+  ));
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  html {
+    @include mat.theme((
+      color: (
+        theme-type: dark,
+        primary: mat.$cyan-palette,
+        tertiary: mat.$violet-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    ));
+  }
+}
+
+// Custom overrides for better game aesthetics
+.mat-mdc-button-base {
+  --mdc-text-button-label-text-tracking: 0.02em;
+}
+
+// Snackbar customization
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: #1e293b;
+  --mdc-snackbar-supporting-text-color: #f8fafc;
+}
