@@ -1,0 +1,33 @@
+<!-- 
+  Reversi Application Main Template
+  Replicates Windows 2.0 Reversi window layout
+-->
+<div class="window">
+  <div class="window-titlebar">
+    <span class="window-icon"></span>
+    <span class="window-title">Reversi</span>
+    <div class="window-controls">
+      <button class="minimize-button">_</button>
+      <button class="maximize-button">□</button>
+    </div>
+  </div>
+  
+  <app-menu
+    (hint)="onHint()"
+    (pass)="onPass()"
+    (newGame)="onNewGame()"
+    (exit)="onExit()"
+    (about)="onAbout()"
+    (skillChange)="onSkillChange($event)"
+  ></app-menu>
+  
+  <div class="window-content">
+    <app-board></app-board>
+  </div>
+  
+  <app-status-bar></app-status-bar>
+</div>
+
+@if (showAboutDialog()) {
+  <app-about-dialog (close)="onCloseAbout()"></app-about-dialog>
+}

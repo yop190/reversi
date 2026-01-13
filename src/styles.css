@@ -1,0 +1,55 @@
+/**
+ * Global Styles
+ * Windows 2.0 base styling for Reversi
+ */
+
+/* Reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Windows 2.0 desktop background */
+html, body {
+  height: 100%;
+  background-color: #008080; /* Classic teal desktop */
+  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 12px;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+/* Windows 2.0 style button base */
+button {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* Disable text selection for UI elements */
+.window,
+.menu-bar,
+.status-bar {
+  user-select: none;
+}
+
+/* Focus styles */
+button:focus {
+  outline: 1px dotted #000000;
+  outline-offset: -4px;
+}
+
+/* Classic Windows cursors */
+.crosshair {
+  cursor: crosshair;
+}
+
+/* Underline for menu accelerators */
+u {
+  text-decoration: underline;
+}

@@ -1,0 +1,129 @@
+REVERSI.EXE PATCH DOCUMENTATION
+================================
+Windows 2.0 / 16-bit NE Executable Modifications
+Date: January 2026
+
+OVERVIEW
+--------
+This package contains the original REVERSI.EXE from Windows 2.0
+and two patched versions:
+
+1. REVERSI_DA.EXE - Danish language translation
+2. REVERSI_2.EXE  - Corner starting positions variant
+
+TECHNICAL DETAILS
+-----------------
+- Executable Type: 16-bit NE (New Executable)
+- Target OS: Microsoft Windows 2.0
+- CPU: 8086 real mode
+- File Size: 15,760 bytes (unchanged)
+- All patches maintain exact byte length to preserve NE structure
+
+
+REVERSI_DA.EXE - DANISH TRANSLATION
+-----------------------------------
+Menu translations applied at the following offsets:
+
+  Offset   Original          Danish
+  ------   --------          ------
+  0x3B61   &Game             &Spil
+  0x3B6A   &Hint             &Tip
+  0x3B73   &Pass             &Pas
+  0x3B7C   &New              &Ny
+  0x3B88   E&xit             &Slut
+  0x3B91   A&bout Reversi... O&m Reversi.....
+  0x3BA4   &Skill            &Grad
+  0x3BAE   &Beginner         &Novis
+  0x3BBB   &Novice           &Let
+  0x3BC6   &Expert           &Eksper
+  0x3BD1   &Master           &Mester
+
+String table translations:
+
+  Offset   Original              Danish
+  ------   --------              ------
+  0x3CC2   Pass                  Pas
+  0x3CC7   You must Pass         Du maa passe
+  0x3CD5   Tie Game              Uafgjort
+  0x3CDE   You Lost by           Du tabte med
+  0x3CEB   You Won by            Du vandt me
+  0x3CF7   About...              Om......
+  0x3D02   (cursor msg)          (Danish version)
+  0x3D3C   (pass msg)            (Danish version)
+
+Notes:
+- No accents used (ae/oe/aa for Danish chars) for ASCII compatibility
+- All strings padded to maintain exact original length
+- Ampersand (&) preserved for keyboard shortcuts
+
+
+REVERSI_2.EXE - CORNER STARTING POSITIONS
+------------------------------------------
+The standard Reversi game starts with 4 pieces in the center.
+This variant starts with pieces in the four corners.
+
+Board representation:
+- Display grid: 8x8
+- Internal grid: 10x10 (includes boundary for calculations)
+- Array offset = row * 10 + column
+
+Original piece positions (center):
+  Position  Array Offset  Hex    Piece
+  --------  ------------  ---    -----
+  (4,4)     44            0x2C   White (02)
+  (4,5)     45            0x2D   Black (03)
+  (5,4)     54            0x36   Black (03)
+  (5,5)     55            0x37   White (02)
+
+New piece positions (corners):
+  Position  Array Offset  Hex    Piece
+  --------  ------------  ---    -----
+  (1,1)     11            0x0B   Black (03)
+  (1,8)     18            0x12   White (02)
+  (8,1)     81            0x51   White (02)
+  (8,8)     88            0x58   Black (03)
+
+Assembly patches applied:
+
+  Offset   Original Bytes   Patched Bytes   Instruction Change
+  ------   --------------   -------------   ------------------
+  0x11E2   C6 40 2D 03      C6 40 0B 03     MOV [BX+2Dh],03 -> MOV [BX+0Bh],03
+  0x11F1   C6 40 36 03      C6 40 58 03     MOV [BX+36h],03 -> MOV [BX+58h],03
+  0x1200   C6 40 2C 02      C6 40 12 02     MOV [BX+2Ch],02 -> MOV [BX+12h],02
+  0x120F   C6 40 37 02      C6 40 51 02     MOV [BX+37h],02 -> MOV [BX+51h],02
+
+
+MANUAL PATCHING INSTRUCTIONS
+----------------------------
+To apply patches manually using a hex editor:
+
+For REVERSI_DA.EXE:
+1. Open REVERSI.EXE in a hex editor
+2. Navigate to each offset listed above
+3. Replace the original bytes with Danish strings
+4. Ensure padding with 0x00 bytes to maintain length
+5. Save as REVERSI_DA.EXE
+
+For REVERSI_2.EXE:
+1. Open REVERSI.EXE in a hex editor
+2. At offset 0x11E4: Change 2D to 0B
+3. At offset 0x11F3: Change 36 to 58
+4. At offset 0x1202: Change 2C to 12
+5. At offset 0x1211: Change 37 to 51
+6. Save as REVERSI_2.EXE
+
+
+RUNNING THE GAMES
+-----------------
+These executables require Windows 2.x or a compatible emulator:
+- DOSBox-X with Windows 2.0/2.1
+- PCem with Windows 2.x
+- 86Box with Windows 2.x
+- QEMU with FreeDOS + Windows 2.x
+
+
+DISCLAIMER
+----------
+These patches are for educational and preservation purposes.
+Microsoft Reversi is copyrighted software.
+Use at your own risk.

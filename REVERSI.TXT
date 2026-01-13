@@ -1,0 +1,18 @@
+PLEASE READ
+-------------------------------------------------
+By using the following Windows 3.1 Driver Library
+(the "Software"), you are hereby agreeing to the
+included license agreement.  Please review the
+file LICENSE.TXT.
+
+Instructions for installing Reversi
+---------------------------------------------
+
+1.  From the disk or directory to which you
+    downloaded, copy the REVERSI.EXE file to your
+    Windows directory.
+
+2.  Create a program item for the application.
+    For more information, see Chapter 3,
+    "Program Manager," in the "Microsoft Windows
+    User's Guide."
