@@ -16,6 +16,7 @@ import { SkillLevel } from '../../models/game.types';
 
 @Component({
     selector: 'app-menu',
+    standalone: true,
     imports: [
       CommonModule,
       MatButtonModule,

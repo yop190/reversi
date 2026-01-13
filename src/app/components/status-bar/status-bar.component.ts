@@ -11,6 +11,7 @@ import { Player } from '../../models/game.types';
 
 @Component({
     selector: 'app-status-bar',
+    standalone: true,
     imports: [CommonModule],
     template: `
     <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">

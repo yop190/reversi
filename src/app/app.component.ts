@@ -23,6 +23,7 @@ import { SkillLevel } from './models/game.types';
 
 @Component({
     selector: 'app-root',
+    standalone: true,
     imports: [
         CommonModule,
         MatToolbarModule,

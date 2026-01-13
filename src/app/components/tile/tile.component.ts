@@ -11,6 +11,7 @@ import { GameEngineService } from '../../services/game-engine.service';
 
 @Component({
     selector: 'app-tile',
+    standalone: true,
     imports: [CommonModule],
     template: `
     <div class="tile-inner" 

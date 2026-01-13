@@ -11,6 +11,7 @@ import { MatIconModule } from '@angular/material/icon';
 
 @Component({
     selector: 'app-about-dialog',
+    standalone: true,
     imports: [CommonModule, MatButtonModule, MatIconModule],
     template: `
     <div class="dialog-overlay" 

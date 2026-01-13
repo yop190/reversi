@@ -13,6 +13,7 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
 
 @Component({
     selector: 'app-board',
+    standalone: true,
     imports: [CommonModule, TileComponent],
     template: `
     <!-- Column labels (A-H) -->
