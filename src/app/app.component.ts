@@ -15,17 +15,16 @@ import { GameStateService } from './services/game-state.service';
 import { SkillLevel } from './models/game.types';
 
 @Component({
-  selector: 'app-root',
-  standalone: true,
-  imports: [
-    CommonModule,
-    BoardComponent,
-    MenuComponent,
-    StatusBarComponent,
-    AboutDialogComponent
-  ],
-  templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+    selector: 'app-root',
+    imports: [
+        CommonModule,
+        BoardComponent,
+        MenuComponent,
+        StatusBarComponent,
+        AboutDialogComponent
+    ],
+    templateUrl: './app.component.html',
+    styleUrl: './app.component.css'
 })
 export class AppComponent {
   private gameEngine = inject(GameEngineService);

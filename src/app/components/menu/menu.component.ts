@@ -10,10 +10,9 @@ import { GameStateService } from '../../services/game-state.service';
 import { SkillLevel } from '../../models/game.types';
 
 @Component({
-  selector: 'app-menu',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-menu',
+    imports: [CommonModule],
+    template: `
     <div class="menu-bar">
       <!-- Game Menu -->
       <div class="menu-item" 
@@ -80,7 +79,7 @@ import { SkillLevel } from '../../models/game.types';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .menu-bar {
       display: flex;
       background-color: #c0c0c0;

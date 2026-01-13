@@ -10,10 +10,9 @@ import { CellState } from '../../models/game.types';
 import { GameEngineService } from '../../services/game-engine.service';
 
 @Component({
-  selector: 'app-tile',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-tile',
+    imports: [CommonModule],
+    template: `
     <div class="tile-inner" [class.has-piece]="state() !== CellState.Empty">
       @if (state() === CellState.Black) {
         <div class="piece black"></div>
@@ -23,7 +22,7 @@ import { GameEngineService } from '../../services/game-engine.service';
       }
     </div>
   `,
-  styles: [`
+    styles: [`
     :host {
       display: block;
       width: 32px;

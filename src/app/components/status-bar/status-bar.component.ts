@@ -9,10 +9,9 @@ import { CommonModule } from '@angular/common';
 import { GameStateService } from '../../services/game-state.service';
 
 @Component({
-  selector: 'app-status-bar',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-status-bar',
+    imports: [CommonModule],
+    template: `
     <div class="status-bar">
       <div class="score-section">
         <span class="score-item">
@@ -33,7 +32,7 @@ import { GameStateService } from '../../services/game-state.service';
       }
     </div>
   `,
-  styles: [`
+    styles: [`
     .status-bar {
       background-color: #c0c0c0;
       border-top: 1px solid #808080;

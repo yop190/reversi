@@ -12,10 +12,9 @@ import { GameEngineService } from '../../services/game-engine.service';
 import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
 
 @Component({
-  selector: 'app-board',
-  standalone: true,
-  imports: [CommonModule, TileComponent],
-  template: `
+    selector: 'app-board',
+    imports: [CommonModule, TileComponent],
+    template: `
     <div class="board-container">
       <div class="board">
         @for (row of rows; track row) {
@@ -34,7 +33,7 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .board-container {
       display: inline-block;
       padding: 4px;

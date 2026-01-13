@@ -8,10 +8,9 @@ import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-about-dialog',
-  standalone: true,
-  imports: [CommonModule],
-  template: `
+    selector: 'app-about-dialog',
+    imports: [CommonModule],
+    template: `
     <div class="dialog-overlay" (click)="close.emit()">
       <div class="dialog-window" (click)="$event.stopPropagation()">
         <div class="dialog-titlebar">
@@ -38,7 +37,7 @@ import { CommonModule } from '@angular/common';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .dialog-overlay {
       position: fixed;
       top: 0;
