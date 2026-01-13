@@ -1,70 +1,49 @@
 /**
  * App Component Styles
- * Windows 2.0 window chrome styling
+ * Modern layout with smooth animations
  */
 
-.window {
-  display: inline-flex;
-  flex-direction: column;
-  background-color: #c0c0c0;
-  border: 2px outset #c0c0c0;
-  box-shadow: 4px 4px 0 #000000;
-  font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, sans-serif;
-  font-size: 12px;
+:host {
+  display: block;
+  min-height: 100vh;
 }
 
-.window-titlebar {
-  display: flex;
-  align-items: center;
-  background: linear-gradient(to right, #000080, #1084d0);
-  color: #ffffff;
-  padding: 2px 4px;
-  font-weight: bold;
-  gap: 4px;
+/* Keyboard indicator styling */
+kbd {
+  font-family: 'SF Mono', 'Roboto Mono', monospace;
+  font-size: 0.75rem;
 }
 
-.window-icon {
-  width: 16px;
-  height: 16px;
-  background-color: #008000;
-  border: 1px solid #000000;
-  display: inline-block;
+/* Glass card effect enhancement */
+.glass-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.1) 0%,
+    rgba(255, 255, 255, 0.05) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
 }
 
-.window-title {
-  flex: 1;
+/* Mobile FAB positioning */
+@media (max-width: 639px) {
+  main {
+    padding-bottom: 100px;
+  }
 }
 
-.window-controls {
-  display: flex;
-  gap: 2px;
+/* Smooth page transitions */
+main {
+  animation: fadeIn 0.3s ease-out;
 }
 
-.minimize-button,
-.maximize-button {
-  width: 18px;
-  height: 18px;
-  background-color: #c0c0c0;
-  border: 2px outset #c0c0c0;
-  font-size: 10px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.minimize-button:active,
-.maximize-button:active {
-  border-style: inset;
-}
-
-.window-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 8px;
-  background-color: #c0c0c0;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

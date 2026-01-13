@@ -1,7 +1,7 @@
 /**
  * Board Component
- * Displays the 8x8 Reversi game board
- * Replicates the layout of original Windows 2.0 Reversi
+ * Modern 8x8 Reversi game board with elegant styling
+ * Responsive design with smooth animations
  */
 
 import { Component, inject, signal } from '@angular/core';
@@ -15,10 +15,32 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
     selector: 'app-board',
     imports: [CommonModule, TileComponent],
     template: `
-    <div class="board-container">
-      <div class="board">
+    <!-- Column labels (A-H) -->
+    <div class="flex justify-center mb-2">
+      <div class="w-6 sm:w-8"></div>
+      @for (col of cols; track col) {
+        <div class="w-10 h-6 sm:w-12 sm:h-8 flex items-center justify-center 
+                    text-xs sm:text-sm font-medium text-slate-400">
+          {{ getColumnLabel(col) }}
+        </div>
+      }
+    </div>
+
+    <div class="flex">
+      <!-- Row labels (1-8) -->
+      <div class="flex flex-col">
         @for (row of rows; track row) {
-          <div class="board-row">
+          <div class="w-6 h-10 sm:w-8 sm:h-12 flex items-center justify-center 
+                      text-xs sm:text-sm font-medium text-slate-400">
+            {{ row }}
+          </div>
+        }
+      </div>
+
+      <!-- Game Board -->
+      <div class="board" role="grid" aria-label="Reversi game board">
+        @for (row of rows; track row) {
+          <div class="board-row" role="row">
             @for (col of cols; track col) {
               <app-tile
                 [row]="row"
@@ -26,6 +48,7 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
                 [state]="getCellState(row, col)"
                 [isHint]="isHintPosition(row, col)"
                 (tileClick)="onTileClick($event)"
+                [attr.aria-label]="getTileLabel(row, col)"
               ></app-tile>
             }
           </div>
@@ -34,22 +57,28 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
     </div>
   `,
     styles: [`
-    .board-container {
-      display: inline-block;
-      padding: 4px;
-      background-color: #000000;
+    :host {
+      display: block;
     }
-    
+
     .board {
       display: flex;
       flex-direction: column;
-      background-color: #008000;
-      border: 2px solid #000000;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      background: linear-gradient(135deg, #065f46, #047857, #059669);
+      box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.1),
+        0 4px 6px rgba(0, 0, 0, 0.3),
+        0 10px 30px rgba(0, 0, 0, 0.4);
+      border: 3px solid #064e3b;
     }
     
     .board-row {
       display: flex;
     }
+
+    /* Responsive sizing handled in tile component */
   `]
 })
 export class BoardComponent {
@@ -60,8 +89,30 @@ export class BoardComponent {
   readonly rows = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
   readonly cols = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
 
+  // Column labels
+  private readonly columnLabels = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+
   // Current hint position
   hintPosition = signal<Position | null>(null);
+
+  /**
+   * Get column label (A-H)
+   */
+  getColumnLabel(col: number): string {
+    return this.columnLabels[col - 1];
+  }
+
+  /**
+   * Get accessible tile label
+   */
+  getTileLabel(row: number, col: number): string {
+    const state = this.gameState.getCellState(row, col);
+    const position = `${this.columnLabels[col - 1]}${row}`;
+    if (state === CellState.Black) return `${position}: Black piece`;
+    if (state === CellState.White) return `${position}: White piece`;
+    if (this.gameEngine.isValidMove(row, col)) return `${position}: Valid move`;
+    return `${position}: Empty`;
+  }
 
   /**
    * Get cell state as a function (for change detection)

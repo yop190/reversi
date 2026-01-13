@@ -1,33 +1,83 @@
 <!-- 
-  Reversi Application Main Template
-  Replicates Windows 2.0 Reversi window layout
+  Modern Reversi Application Layout
+  Responsive, accessible, and elegant design
 -->
-<div class="window">
-  <div class="window-titlebar">
-    <span class="window-icon"></span>
-    <span class="window-title">Reversi</span>
-    <div class="window-controls">
-      <button class="minimize-button">_</button>
-      <button class="maximize-button">□</button>
+<div class="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <!-- Header / Toolbar -->
+  <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo and Title -->
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 
+                      flex items-center justify-center shadow-lg shadow-teal-500/25">
+            <span class="material-symbols-outlined text-white text-xl">grid_on</span>
+          </div>
+          <div class="hidden sm:block">
+            <h1 class="text-xl font-semibold text-white tracking-tight">Reversi</h1>
+            <p class="text-xs text-slate-400">Classic Strategy Game</p>
+          </div>
+        </div>
+
+        <!-- Menu Component (handles game controls and settings) -->
+        <app-menu
+          (hint)="onHint()"
+          (pass)="onPass()"
+          (newGame)="onNewGame()"
+          (exit)="onExit()"
+          (about)="onAbout()"
+          (skillChange)="onSkillChange($event)"
+        ></app-menu>
+      </div>
     </div>
-  </div>
-  
-  <app-menu
-    (hint)="onHint()"
-    (pass)="onPass()"
-    (newGame)="onNewGame()"
-    (exit)="onExit()"
-    (about)="onAbout()"
-    (skillChange)="onSkillChange($event)"
-  ></app-menu>
-  
-  <div class="window-content">
-    <app-board></app-board>
-  </div>
-  
-  <app-status-bar></app-status-bar>
+  </header>
+
+  <!-- Main Game Area -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8 md:py-12">
+    <!-- Score Display (Above Board) -->
+    <app-status-bar class="mb-6 sm:mb-8"></app-status-bar>
+
+    <!-- Game Board -->
+    <div class="relative">
+      <!-- Decorative glow effect -->
+      <div class="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-teal-500/20 via-emerald-500/20 to-cyan-500/20 
+                  rounded-3xl blur-2xl opacity-50"></div>
+      
+      <!-- Board container with glass effect -->
+      <div class="relative glass-card p-3 sm:p-4 md:p-6">
+        <app-board></app-board>
+      </div>
+    </div>
+
+    <!-- Game Message Display -->
+    @if (gameState.message(); as message) {
+      <div class="mt-6 px-6 py-3 rounded-full bg-amber-500/20 border border-amber-500/40 
+                  text-amber-200 text-sm font-medium animate-fade-in flex items-center gap-2">
+        <span class="material-symbols-outlined text-lg">info</span>
+        {{ message }}
+      </div>
+    }
+
+    <!-- Quick Actions for Mobile -->
+    @if (isMobile()) {
+      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-40">
+        <button mat-fab extended color="primary" (click)="onNewGame()" 
+                class="!bg-gradient-to-r !from-teal-500 !to-emerald-600 !shadow-lg !shadow-teal-500/25">
+          <mat-icon>refresh</mat-icon>
+          New Game
+        </button>
+      </div>
+    }
+  </main>
+
+  <!-- Footer -->
+  <footer class="py-4 text-center text-slate-500 text-xs border-t border-white/5">
+    <p>Press <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">H</kbd> for hint · 
+       <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">N</kbd> for new game</p>
+  </footer>
 </div>
 
+<!-- About Dialog -->
 @if (showAboutDialog()) {
   <app-about-dialog (close)="onCloseAbout()"></app-about-dialog>
 }

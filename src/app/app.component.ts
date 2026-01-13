@@ -1,11 +1,18 @@
 /**
  * App Component
- * Main window for Reversi application
- * Replicates the Windows 2.0 Reversi main window
+ * Modern Reversi Application with Angular Material & Tailwind
+ * Features: Responsive design, elegant UI, full accessibility
  */
 
-import { Component, inject, signal, ViewChild } from '@angular/core';
+import { Component, inject, signal, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatDialogModule } from '@angular/material/dialog';
 import { BoardComponent } from './components/board/board.component';
 import { MenuComponent } from './components/menu/menu.component';
 import { StatusBarComponent } from './components/status-bar/status-bar.component';
@@ -18,6 +25,13 @@ import { SkillLevel } from './models/game.types';
     selector: 'app-root',
     imports: [
         CommonModule,
+        MatToolbarModule,
+        MatButtonModule,
+        MatIconModule,
+        MatMenuModule,
+        MatTooltipModule,
+        MatSnackBarModule,
+        MatDialogModule,
         BoardComponent,
         MenuComponent,
         StatusBarComponent,
@@ -28,20 +42,36 @@ import { SkillLevel } from './models/game.types';
 })
 export class AppComponent {
   private gameEngine = inject(GameEngineService);
-  private gameState = inject(GameStateService);
+  protected gameState = inject(GameStateService);
+  private snackBar = inject(MatSnackBar);
 
   @ViewChild(BoardComponent) boardComponent!: BoardComponent;
 
   showAboutDialog = signal(false);
+  isMobile = signal(window.innerWidth < 640);
+
+  @HostListener('window:resize')
+  onResize(): void {
+    this.isMobile.set(window.innerWidth < 640);
+  }
 
   onHint(): void {
     const hintPos = this.gameEngine.getHint();
     if (hintPos && this.boardComponent) {
       this.boardComponent.showHint(hintPos);
+      this.snackBar.open('Hint: Best move highlighted!', 'OK', {
+        duration: 2000,
+        horizontalPosition: 'center',
+        verticalPosition: 'bottom'
+      });
       // Clear hint after a short delay
       setTimeout(() => {
         this.boardComponent.clearHint();
       }, 2000);
+    } else {
+      this.snackBar.open('No hints available', 'OK', {
+        duration: 2000
+      });
     }
   }
 
@@ -54,10 +84,15 @@ export class AppComponent {
     if (this.boardComponent) {
       this.boardComponent.clearHint();
     }
+    this.snackBar.open('New game started!', 'OK', {
+      duration: 1500,
+      horizontalPosition: 'center',
+      verticalPosition: 'bottom'
+    });
   }
 
   onExit(): void {
-    // In a browser context, we can close the window or show a message
+    // In modern context, show confirmation and close
     if (confirm('Exit Reversi?')) {
       window.close();
     }
@@ -73,5 +108,14 @@ export class AppComponent {
 
   onSkillChange(level: SkillLevel): void {
     this.gameEngine.setSkillLevel(level);
+    const levelNames: Record<SkillLevel, string> = {
+      [SkillLevel.Beginner]: 'Beginner',
+      [SkillLevel.Novice]: 'Novice',
+      [SkillLevel.Expert]: 'Expert',
+      [SkillLevel.Master]: 'Master'
+    };
+    this.snackBar.open(`Difficulty: ${levelNames[level]}`, 'OK', {
+      duration: 1500
+    });
   }
 }
