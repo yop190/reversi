@@ -73,23 +73,23 @@ export class TileComponent {
   @Input({ required: true }) col!: number;
   @Input({ required: true }) state!: () => CellState;
   @Input() isHint: boolean = false;
-  
+
   @Output() tileClick = new EventEmitter<{ row: number; col: number }>();
-  
+
   private gameEngine = inject(GameEngineService);
-  
+
   readonly CellState = CellState;
-  
+
   @HostBinding('class.valid-move')
   get isValidMove(): boolean {
     return this.gameEngine.isValidMove(this.row, this.col);
   }
-  
+
   @HostBinding('class.hint')
   get showHint(): boolean {
     return this.isHint;
   }
-  
+
   @HostListener('click')
   onClick(): void {
     this.tileClick.emit({ row: this.row, col: this.col });

@@ -56,21 +56,21 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
 export class BoardComponent {
   private gameState = inject(GameStateService);
   private gameEngine = inject(GameEngineService);
-  
+
   // Board dimensions
   readonly rows = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
   readonly cols = Array.from({ length: BOARD_SIZE }, (_, i) => i + 1);
-  
+
   // Current hint position
   hintPosition = signal<Position | null>(null);
-  
+
   /**
    * Get cell state as a function (for change detection)
    */
   getCellState(row: number, col: number): () => CellState {
     return () => this.gameState.getCellState(row, col);
   }
-  
+
   /**
    * Check if position is the hint position
    */
@@ -78,7 +78,7 @@ export class BoardComponent {
     const hint = this.hintPosition();
     return hint !== null && hint.row === row && hint.col === col;
   }
-  
+
   /**
    * Handle tile click
    */
@@ -87,14 +87,14 @@ export class BoardComponent {
     this.hintPosition.set(null);
     this.gameEngine.makeMove(event.row, event.col);
   }
-  
+
   /**
    * Show hint at position
    */
   showHint(position: Position | null): void {
     this.hintPosition.set(position);
   }
-  
+
   /**
    * Clear hint
    */

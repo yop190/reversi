@@ -11,9 +11,11 @@
 }
 
 /* Windows 2.0 desktop background */
-html, body {
+html,
+body {
   height: 100%;
-  background-color: #008080; /* Classic teal desktop */
+  background-color: #008080;
+  /* Classic teal desktop */
   font-family: 'MS Sans Serif', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 12px;
 }

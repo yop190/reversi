@@ -30,11 +30,11 @@ import { SkillLevel } from './models/game.types';
 export class AppComponent {
   private gameEngine = inject(GameEngineService);
   private gameState = inject(GameStateService);
-  
+
   @ViewChild(BoardComponent) boardComponent!: BoardComponent;
-  
+
   showAboutDialog = signal(false);
-  
+
   onHint(): void {
     const hintPos = this.gameEngine.getHint();
     if (hintPos && this.boardComponent) {
@@ -45,33 +45,33 @@ export class AppComponent {
       }, 2000);
     }
   }
-  
+
   onPass(): void {
     this.gameEngine.pass();
   }
-  
+
   onNewGame(): void {
     this.gameEngine.newGame();
     if (this.boardComponent) {
       this.boardComponent.clearHint();
     }
   }
-  
+
   onExit(): void {
     // In a browser context, we can close the window or show a message
     if (confirm('Exit Reversi?')) {
       window.close();
     }
   }
-  
+
   onAbout(): void {
     this.showAboutDialog.set(true);
   }
-  
+
   onCloseAbout(): void {
     this.showAboutDialog.set(false);
   }
-  
+
   onSkillChange(level: SkillLevel): void {
     this.gameEngine.setSkillLevel(level);
   }

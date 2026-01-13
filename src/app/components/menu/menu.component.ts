@@ -158,18 +158,18 @@ import { SkillLevel } from '../../models/game.types';
 })
 export class MenuComponent {
   gameState = inject(GameStateService);
-  
+
   @Output() hint = new EventEmitter<void>();
   @Output() pass = new EventEmitter<void>();
   @Output() newGame = new EventEmitter<void>();
   @Output() exit = new EventEmitter<void>();
   @Output() about = new EventEmitter<void>();
   @Output() skillChange = new EventEmitter<SkillLevel>();
-  
+
   readonly SkillLevel = SkillLevel;
-  
+
   activeMenu = signal<string | null>(null);
-  
+
   toggleMenu(menu: string): void {
     if (this.activeMenu() === menu) {
       this.activeMenu.set(null);
@@ -177,11 +177,11 @@ export class MenuComponent {
       this.activeMenu.set(menu);
     }
   }
-  
+
   closeMenu(): void {
     this.activeMenu.set(null);
   }
-  
+
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
     const target = event.target as HTMLElement;
@@ -189,7 +189,7 @@ export class MenuComponent {
       this.closeMenu();
     }
   }
-  
+
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent): void {
     // Handle Alt+key shortcuts
@@ -242,38 +242,38 @@ export class MenuComponent {
           break;
       }
     }
-    
+
     // Escape closes menu
     if (event.key === 'Escape') {
       this.closeMenu();
     }
   }
-  
+
   onHint(): void {
     this.closeMenu();
     this.hint.emit();
   }
-  
+
   onPass(): void {
     this.closeMenu();
     this.pass.emit();
   }
-  
+
   onNew(): void {
     this.closeMenu();
     this.newGame.emit();
   }
-  
+
   onExit(): void {
     this.closeMenu();
     this.exit.emit();
   }
-  
+
   onAbout(): void {
     this.closeMenu();
     this.about.emit();
   }
-  
+
   onSkillSelect(level: SkillLevel): void {
     this.closeMenu();
     this.skillChange.emit(level);
