@@ -16,11 +16,9 @@ kbd {
 
 /* Glass card effect enhancement */
 .glass-card {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.1) 0%,
-    rgba(255, 255, 255, 0.05) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.05) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -42,8 +40,129 @@ main {
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ==========================================
+   MODE SELECTION MENU
+   ========================================== */
+
+.mode-selection {
+  max-width: 400px;
+  width: 100%;
+  padding: 3rem 2rem;
+  border-radius: 2rem;
+  animation: fadeIn 0.4s ease-out;
+}
+
+.logo-container {
+  margin-bottom: 3rem;
+}
+
+.logo-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+  border-radius: 1.5rem;
+  background: linear-gradient(135deg, #14b8a6, #10b981);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 20px 40px -10px rgba(20, 184, 166, 0.4);
+}
+
+.logo-icon .material-symbols-outlined {
+  font-size: 40px;
+  color: white;
+}
+
+.mode-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem !important;
+  height: auto !important;
+  border-radius: 1rem !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
+}
+
+.mode-btn:hover {
+  transform: translateY(-2px);
+}
+
+.mode-btn mat-icon {
+  font-size: 32px;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 0.5rem;
+}
+
+.mode-btn span {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.mode-btn small {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 400;
+  margin-top: 0.25rem;
+}
+
+.mode-btn.multiplayer {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7) !important;
+}
+
+.mode-btn.multiplayer:hover {
+  box-shadow: 0 10px 30px -5px rgba(139, 92, 246, 0.4);
+}
+
+/* Connection Status */
+.connection-status {
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.connection-status .status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.connection-status .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.connection-status .status.online .dot {
+  background: #22c55e;
+}
+
+.connection-status .status.offline .dot {
+  background: #ef4444;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
   }
 }

@@ -12,10 +12,10 @@ import { GameEngineService } from '../../services/game-engine.service';
 import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
 
 @Component({
-    selector: 'app-board',
-    standalone: true,
-    imports: [CommonModule, TileComponent],
-    template: `
+  selector: 'app-board',
+  standalone: true,
+  imports: [CommonModule, TileComponent],
+  template: `
     <!-- Column labels (A-H) -->
     <div class="flex justify-center mb-2">
       <div class="w-6 sm:w-8"></div>
@@ -57,7 +57,7 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     :host {
       display: block;
     }

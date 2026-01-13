@@ -10,10 +10,10 @@ import { GameStateService } from '../../services/game-state.service';
 import { Player } from '../../models/game.types';
 
 @Component({
-    selector: 'app-status-bar',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-status-bar',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
       <!-- Black (Human) Score -->
       <div class="score-card" 
@@ -91,7 +91,7 @@ import { Player } from '../../models/game.types';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     :host {
       display: block;
     }

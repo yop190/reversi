@@ -10,10 +10,10 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 @Component({
-    selector: 'app-about-dialog',
-    standalone: true,
-    imports: [CommonModule, MatButtonModule, MatIconModule],
-    template: `
+  selector: 'app-about-dialog',
+  standalone: true,
+  imports: [CommonModule, MatButtonModule, MatIconModule],
+  template: `
     <div class="dialog-overlay" 
          (click)="close.emit()"
          role="dialog"
@@ -98,7 +98,7 @@ import { MatIconModule } from '@angular/material/icon';
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .dialog-overlay {
       position: fixed;
       inset: 0;

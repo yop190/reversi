@@ -10,6 +10,7 @@
 
 /* Base layer customizations */
 @layer base {
+
   html,
   body {
     @apply h-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900;
@@ -23,6 +24,7 @@
 
 /* Component layer - reusable game-specific components */
 @layer components {
+
   /* Game container */
   .game-container {
     @apply flex-1 flex flex-col items-center justify-center p-4 sm:p-6 md:p-8;
@@ -57,16 +59,17 @@
 
 /* Utility layer */
 @layer utilities {
+
   /* Piece shadows for 3D effect */
   .piece-shadow-black {
-    box-shadow: 
+    box-shadow:
       inset -4px -4px 8px rgba(0, 0, 0, 0.6),
       inset 4px 4px 8px rgba(255, 255, 255, 0.1),
       0 4px 12px rgba(0, 0, 0, 0.4);
   }
 
   .piece-shadow-white {
-    box-shadow: 
+    box-shadow:
       inset -4px -4px 8px rgba(0, 0, 0, 0.15),
       inset 4px 4px 8px rgba(255, 255, 255, 0.8),
       0 4px 12px rgba(0, 0, 0, 0.3);
@@ -93,9 +96,11 @@
     transform: scale(0) rotateY(180deg);
     opacity: 0;
   }
+
   60% {
     transform: scale(1.1) rotateY(0deg);
   }
+
   100% {
     transform: scale(1) rotateY(0deg);
     opacity: 1;
@@ -106,9 +111,11 @@
   0% {
     transform: rotateY(0deg) scale(1);
   }
+
   50% {
     transform: rotateY(90deg) scale(0.9);
   }
+
   100% {
     transform: rotateY(0deg) scale(1);
   }

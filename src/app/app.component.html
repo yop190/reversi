@@ -1,83 +1,156 @@
 <!-- 
   Modern Reversi Application Layout
-  Responsive, accessible, and elegant design
+  Supports both single-player and multiplayer modes
 -->
 <div class="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-  <!-- Header / Toolbar -->
-  <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <!-- Logo and Title -->
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 
-                      flex items-center justify-center shadow-lg shadow-teal-500/25">
-            <span class="material-symbols-outlined text-white text-xl">grid_on</span>
+  
+  <!-- MODE: Main Menu -->
+  @if (gameMode() === 'menu') {
+    <div class="flex-1 flex items-center justify-center p-4">
+      <div class="mode-selection glass-card text-center">
+        <!-- Logo -->
+        <div class="logo-container">
+          <div class="logo-icon">
+            <span class="material-symbols-outlined">grid_on</span>
           </div>
-          <div class="hidden sm:block">
-            <h1 class="text-xl font-semibold text-white tracking-tight">Reversi</h1>
-            <p class="text-xs text-slate-400">Classic Strategy Game</p>
-          </div>
+          <h1 class="text-3xl font-bold text-white mt-4">Reversi</h1>
+          <p class="text-slate-400 mt-2">Classic Strategy Game</p>
         </div>
-
-        <!-- Menu Component (handles game controls and settings) -->
-        <app-menu
-          (hint)="onHint()"
-          (pass)="onPass()"
-          (newGame)="onNewGame()"
-          (exit)="onExit()"
-          (about)="onAbout()"
-          (skillChange)="onSkillChange($event)"
-        ></app-menu>
+        
+        <!-- Mode Selection Buttons -->
+        <div class="mode-buttons">
+          <button mat-raised-button 
+                  color="primary" 
+                  class="mode-btn"
+                  (click)="startSinglePlayer()">
+            <mat-icon>person</mat-icon>
+            <span>Single Player</span>
+            <small>Play against AI</small>
+          </button>
+          
+          <button mat-raised-button 
+                  color="accent" 
+                  class="mode-btn multiplayer"
+                  (click)="startMultiplayer()">
+            <mat-icon>groups</mat-icon>
+            <span>Multiplayer</span>
+            <small>Play online</small>
+          </button>
+        </div>
+        
+        <!-- Connection Status -->
+        <div class="connection-status">
+          @if (ws.isConnected()) {
+            <span class="status online">
+              <span class="dot"></span>
+              Connected · {{ ws.lobbyState().onlineCount }} online
+            </span>
+          } @else {
+            <span class="status offline">
+              <span class="dot"></span>
+              Connecting...
+            </span>
+          }
+        </div>
       </div>
     </div>
-  </header>
-
-  <!-- Main Game Area -->
-  <main class="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8 md:py-12">
-    <!-- Score Display (Above Board) -->
-    <app-status-bar class="mb-6 sm:mb-8"></app-status-bar>
-
-    <!-- Game Board -->
-    <div class="relative">
-      <!-- Decorative glow effect -->
-      <div class="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-teal-500/20 via-emerald-500/20 to-cyan-500/20 
-                  rounded-3xl blur-2xl opacity-50"></div>
-      
-      <!-- Board container with glass effect -->
-      <div class="relative glass-card p-3 sm:p-4 md:p-6">
-        <app-board></app-board>
+  }
+  
+  <!-- MODE: Multiplayer Lobby or Game Room -->
+  @if (gameMode() === 'multiplayer') {
+    <!-- Back to menu button -->
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+      <div class="max-w-6xl mx-auto px-4 h-14 flex items-center">
+        <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <span class="ml-2 text-white font-medium">Multiplayer Reversi</span>
       </div>
-    </div>
+    </header>
+    
+    @if (isInRoom()) {
+      <app-game-room></app-game-room>
+    } @else {
+      <app-lobby></app-lobby>
+    }
+  }
+  
+  <!-- MODE: Single Player -->
+  @if (gameMode() === 'single-player') {
+    <!-- Header / Toolbar -->
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <!-- Logo and Title -->
+          <div class="flex items-center gap-3">
+            <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
+              <mat-icon>arrow_back</mat-icon>
+            </button>
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 
+                        flex items-center justify-center shadow-lg shadow-teal-500/25">
+              <span class="material-symbols-outlined text-white text-xl">grid_on</span>
+            </div>
+            <div class="hidden sm:block">
+              <h1 class="text-xl font-semibold text-white tracking-tight">Reversi</h1>
+              <p class="text-xs text-slate-400">Single Player</p>
+            </div>
+          </div>
 
-    <!-- Game Message Display -->
-    @if (gameState.message(); as message) {
+          <!-- Menu Component (handles game controls and settings) -->
+          <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
+            (skillChange)="onSkillChange($event)"></app-menu>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Game Area -->
+    <main class="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8 md:py-12">
+      <!-- Score Display (Above Board) -->
+      <app-status-bar class="mb-6 sm:mb-8"></app-status-bar>
+
+      <!-- Game Board -->
+      <div class="relative">
+        <!-- Decorative glow effect -->
+        <div class="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-teal-500/20 via-emerald-500/20 to-cyan-500/20 
+                    rounded-3xl blur-2xl opacity-50"></div>
+
+        <!-- Board container with glass effect -->
+        <div class="relative glass-card p-3 sm:p-4 md:p-6">
+          <app-board></app-board>
+        </div>
+      </div>
+
+      <!-- Game Message Display -->
+      @if (gameState.message(); as message) {
       <div class="mt-6 px-6 py-3 rounded-full bg-amber-500/20 border border-amber-500/40 
-                  text-amber-200 text-sm font-medium animate-fade-in flex items-center gap-2">
+                    text-amber-200 text-sm font-medium animate-fade-in flex items-center gap-2">
         <span class="material-symbols-outlined text-lg">info</span>
         {{ message }}
       </div>
-    }
+      }
 
-    <!-- Quick Actions for Mobile -->
-    @if (isMobile()) {
+      <!-- Quick Actions for Mobile -->
+      @if (isMobile()) {
       <div class="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-40">
-        <button mat-fab extended color="primary" (click)="onNewGame()" 
-                class="!bg-gradient-to-r !from-teal-500 !to-emerald-600 !shadow-lg !shadow-teal-500/25">
+        <button mat-fab extended color="primary" (click)="onNewGame()"
+          class="!bg-gradient-to-r !from-teal-500 !to-emerald-600 !shadow-lg !shadow-teal-500/25">
           <mat-icon>refresh</mat-icon>
           New Game
         </button>
       </div>
-    }
-  </main>
+      }
+    </main>
 
-  <!-- Footer -->
-  <footer class="py-4 text-center text-slate-500 text-xs border-t border-white/5">
-    <p>Press <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">H</kbd> for hint · 
-       <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">N</kbd> for new game</p>
-  </footer>
+    <!-- Footer -->
+    <footer class="py-4 text-center text-slate-500 text-xs border-t border-white/5">
+      <p>Press <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">H</kbd> for hint ·
+        <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">N</kbd> for new game
+      </p>
+    </footer>
+  }
 </div>
 
 <!-- About Dialog -->
 @if (showAboutDialog()) {
-  <app-about-dialog (close)="onCloseAbout()"></app-about-dialog>
+<app-about-dialog (close)="onCloseAbout()"></app-about-dialog>
 }

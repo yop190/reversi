@@ -6,29 +6,25 @@
 // Apply Material 3 theme with custom settings
 html {
   // Use modern Material 3 theming
-  @include mat.theme((
-    color: (
-      theme-type: light,
-      primary: mat.$cyan-palette,
-      tertiary: mat.$violet-palette,
-    ),
-    typography: Roboto,
-    density: 0,
-  ));
-}
-
-// Dark mode support
-@media (prefers-color-scheme: dark) {
-  html {
-    @include mat.theme((
-      color: (
-        theme-type: dark,
+  @include mat.theme((color: (theme-type: light,
         primary: mat.$cyan-palette,
         tertiary: mat.$violet-palette,
       ),
       typography: Roboto,
       density: 0,
     ));
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  html {
+    @include mat.theme((color: (theme-type: dark,
+          primary: mat.$cyan-palette,
+          tertiary: mat.$violet-palette,
+        ),
+        typography: Roboto,
+        density: 0,
+      ));
   }
 }
 

@@ -15,17 +15,17 @@ import { GameStateService } from '../../services/game-state.service';
 import { SkillLevel } from '../../models/game.types';
 
 @Component({
-    selector: 'app-menu',
-    standalone: true,
-    imports: [
-      CommonModule,
-      MatButtonModule,
-      MatIconModule,
-      MatMenuModule,
-      MatTooltipModule,
-      MatDividerModule
-    ],
-    template: `
+  selector: 'app-menu',
+  standalone: true,
+  imports: [
+    CommonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
+    MatDividerModule
+  ],
+  template: `
     <nav class="flex items-center gap-1 sm:gap-2" role="navigation" aria-label="Game controls">
       <!-- New Game Button -->
       <button mat-icon-button 
@@ -134,7 +134,7 @@ import { SkillLevel } from '../../models/game.types';
       </mat-menu>
     </nav>
   `,
-    styles: [`
+  styles: [`
     :host {
       display: block;
     }

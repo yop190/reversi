@@ -10,10 +10,10 @@ import { CellState } from '../../models/game.types';
 import { GameEngineService } from '../../services/game-engine.service';
 
 @Component({
-    selector: 'app-tile',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'app-tile',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="tile-inner" 
          [class.has-piece]="state() !== CellState.Empty"
          role="gridcell"
@@ -39,7 +39,7 @@ import { GameEngineService } from '../../services/game-engine.service';
       }
     </div>
   `,
-    styles: [`
+  styles: [`
     :host {
       display: block;
       width: 40px;
