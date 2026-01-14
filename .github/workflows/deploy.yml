@@ -82,26 +82,49 @@ jobs:
         run: |
           echo "🔧 Provisioning Azure Infrastructure..."
           
+          # Register required providers (idempotent)
+          echo "📋 Registering Azure providers..."
+          az provider register -n Microsoft.OperationalInsights --wait || true
+          az provider register -n Microsoft.App --wait || true
+          
           # Create Resource Group (idempotent)
+          echo "📦 Creating Resource Group..."
           az group create \
             --name ${{ env.AZURE_RESOURCE_GROUP }} \
             --location ${{ env.AZURE_LOCATION }} \
             --output none
           
           # Create Container Registry (idempotent)
+          echo "📦 Creating Container Registry..."
           az acr create \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --name ${{ env.AZURE_CONTAINER_REGISTRY }} \
             --sku Basic \
             --admin-enabled true \
-            --output none || true
+            --output none 2>/dev/null || echo "ACR already exists"
           
           # Create Container Apps Environment (idempotent)
+          echo "📦 Creating Container Apps Environment..."
           az containerapp env create \
             --name ${{ env.AZURE_CONTAINER_APP_ENV }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --location ${{ env.AZURE_LOCATION }} \
-            --output none || true
+            --output none 2>/dev/null || echo "Container Apps Environment already exists"
+          
+          # Wait for environment to be ready
+          echo "⏳ Waiting for environment to be ready..."
+          for i in {1..30}; do
+            STATE=$(az containerapp env show \
+              --name ${{ env.AZURE_CONTAINER_APP_ENV }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --query "properties.provisioningState" -o tsv 2>/dev/null || echo "NotFound")
+            if [ "$STATE" = "Succeeded" ]; then
+              echo "✅ Environment is ready"
+              break
+            fi
+            echo "  State: $STATE - waiting..."
+            sleep 10
+          done
           
           echo "✅ Infrastructure provisioned"
 
@@ -153,33 +176,34 @@ jobs:
           ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "username" -o tsv)
           ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "passwords[0].value" -o tsv)
           
-          # Create or update Container App
-          az containerapp create \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --environment ${{ env.AZURE_CONTAINER_APP_ENV }} \
-            --image $IMAGE_TAG \
-            --target-port 80 \
-            --ingress external \
-            --registry-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
-            --registry-username $ACR_USERNAME \
-            --registry-password $ACR_PASSWORD \
-            --min-replicas 1 \
-            --max-replicas 10 \
-            --cpu 0.25 \
-            --memory 0.5Gi \
-            --scale-rule-name http-rule \
-            --scale-rule-type http \
-            --scale-rule-http-concurrency 100 \
-            --query properties.configuration.ingress.fqdn \
-            --output tsv 2>/dev/null || \
-          az containerapp update \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --image $IMAGE_TAG \
-            --min-replicas 1 \
-            --max-replicas 10 \
-            --output none
+          # Check if Container App exists
+          if az containerapp show --name ${{ env.AZURE_CONTAINER_APP }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} &>/dev/null; then
+            echo "📦 Container App exists, updating..."
+            az containerapp update \
+              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image $IMAGE_TAG \
+              --min-replicas 1 \
+              --max-replicas 10 \
+              --output none
+          else
+            echo "📦 Creating new Container App..."
+            az containerapp create \
+              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment ${{ env.AZURE_CONTAINER_APP_ENV }} \
+              --image $IMAGE_TAG \
+              --target-port 80 \
+              --ingress external \
+              --registry-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
+              --registry-username $ACR_USERNAME \
+              --registry-password $ACR_PASSWORD \
+              --min-replicas 1 \
+              --max-replicas 10 \
+              --cpu 0.25 \
+              --memory 0.5Gi \
+              --output none
+          fi
           
           # Get the default FQDN
           FQDN=$(az containerapp show \
