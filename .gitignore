@@ -47,9 +47,11 @@ Thumbs.db
 .env.*.local
 *.env
 
-# Azure
-.azure/
+# Azure (exclude sensitive config, keep docs)
+.azure/*
+!.azure/.gitignore
 !.azure/plan.copilotmd
+!.azure/summary.copilotmd
 
 # Backend
 backend/dist
@@ -57,7 +59,6 @@ backend/node_modules
 
 # Test coverage
 coverage/
-
 # Logs
 logs
 *.log
