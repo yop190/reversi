@@ -40,3 +40,28 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# Azure
+.azure/
+!.azure/plan.copilotmd
+
+# Backend
+backend/dist
+backend/node_modules
+
+# Test coverage
+coverage/
+
+# Logs
+logs
+*.log
+
+# Cache
+.npm
+.cache

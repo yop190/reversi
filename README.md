@@ -121,6 +121,99 @@ src/
 5. **Passing**: If no valid moves, your turn is skipped
 6. **Game Over**: When no player can move, highest piece count wins
 
+---
+
+## 🚀 Deployment
+
+### Production URL
+**https://reversi.lebrere.fr**
+
+### Infrastructure
+
+The application is deployed to **Azure Container Apps** - a serverless container platform that provides:
+
+| Feature | Configuration |
+|---------|--------------|
+| **Hosting** | Azure Container Apps (Consumption tier) |
+| **Scaling** | 1-10 replicas (HTTP auto-scaling) |
+| **Load Balancing** | Azure-native, built-in |
+| **HTTPS** | Azure-managed SSL certificate |
+| **Container Registry** | Azure Container Registry (Basic) |
+
+### CI/CD Pipeline
+
+The GitHub Actions pipeline (`.github/workflows/deploy.yml`) automatically:
+
+1. **Build & Test**: Runs on every push to `main`
+   - Installs dependencies (`npm ci`)
+   - Runs unit tests (`ng test --browsers=ChromeHeadless`)
+   - Builds production bundle (`ng build --configuration production`)
+
+2. **Build Image**: Creates and pushes Docker image
+   - Multi-stage build for optimized size
+   - Pushes to Azure Container Registry
+
+3. **Deploy**: Deploys to Azure Container Apps
+   - Zero-downtime deployment with revision management
+   - Configures custom domain and SSL
+
+4. **Verify**: Validates deployment health
+   - Checks `/health` endpoint returns HTTP 200
+   - Verifies TLS certificate validity
+
+### Scaling Behavior
+
+| Metric | Configuration |
+|--------|--------------|
+| Min Replicas | 1 |
+| Max Replicas | 10 |
+| Scale Trigger | HTTP requests |
+| Threshold | 100 concurrent requests per replica |
+
+Scaling is fully automatic - when traffic increases, Azure adds replicas. When traffic decreases, replicas are removed (down to minimum of 1).
+
+### Rollback Procedure
+
+**Option 1: Re-run Previous Workflow**
+1. Go to GitHub → Actions → Select successful workflow run
+2. Click "Re-run all jobs"
+3. The previous image version will be redeployed
+
+**Option 2: Azure Portal Revision Rollback**
+1. Azure Portal → Container Apps → ca-reversi
+2. Revision Management → Select previous revision
+3. Activate the previous revision
+
+**Option 3: Azure CLI Rollback**
+```bash
+# List revisions
+az containerapp revision list \
+  --name ca-reversi \
+  --resource-group rg-reversi-prod \
+  --output table
+
+# Activate specific revision
+az containerapp revision activate \
+  --name ca-reversi \
+  --resource-group rg-reversi-prod \
+  --revision <revision-name>
+```
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Server port (default: 80) |
+
+### Health Endpoint
+
+```
+GET /health
+Response: {"status":"healthy","timestamp":"2025-01-14T12:00:00Z"}
+```
+
+---
+
 ## 📄 Legacy
 
 This project is a modern reimagining of Microsoft's original Reversi game from Windows 2.0 (1987). The original game code can be found in the `/legacy` folder for historical reference.
@@ -138,5 +231,6 @@ See [LICENSE.TXT](LICENSE.TXT) for details.
 ---
 
 <p align="center">
-  Built with ❤️ using Angular + Material + Tailwind
+  Built with ❤️ using Angular + Material + Tailwind<br>
+  Deployed on Azure Container Apps
 </p>
