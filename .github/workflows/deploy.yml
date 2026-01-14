@@ -440,20 +440,21 @@ jobs:
             connected = true;
           });
           
-          socket.on('connected', (data) => {
+          // Events use 'server:' and 'client:' prefixes
+          socket.on('server:connected', (data) => {
             console.log('✅ Received player info:', JSON.stringify(data));
             
             // Try to create a room
             console.log('📝 Creating a test room...');
-            socket.emit('createRoom', { roomName: 'CI-Test-Room' });
+            socket.emit('client:createRoom', { roomName: 'CI-Test-Room' });
           });
           
-          socket.on('roomJoined', (data) => {
+          socket.on('server:roomJoined', (data) => {
             console.log('✅ Room created/joined successfully!', JSON.stringify(data));
             roomCreated = true;
             
             // Leave the room and disconnect
-            socket.emit('leaveRoom');
+            socket.emit('client:leaveRoom');
             
             setTimeout(() => {
               clearTimeout(timeoutId);
@@ -465,11 +466,11 @@ jobs:
             }, 1000);
           });
           
-          socket.on('lobbyUpdate', (data) => {
+          socket.on('server:lobbyUpdate', (data) => {
             console.log('📊 Lobby update received:', JSON.stringify(data));
           });
           
-          socket.on('error', (error) => {
+          socket.on('server:error', (error) => {
             console.log('⚠️ Server error:', JSON.stringify(error));
           });
           
