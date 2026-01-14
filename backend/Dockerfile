@@ -6,15 +6,19 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY ../shared ./shared
+# Copy shared types first (backend depends on these)
+COPY shared ./shared
+
+# Copy backend package files
+COPY backend/package*.json ./backend/
 
 # Install dependencies
-RUN npm ci --only=production
+WORKDIR /app/backend
+RUN npm ci
 
-# Copy source code
-COPY . .
+# Copy backend source code
+COPY backend/src ./src
+COPY backend/tsconfig.json ./
 
 # Build the application
 RUN npm run build
@@ -30,10 +34,11 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nestjs -u 1001
 
-# Copy built application
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
+# Copy built application and dependencies
+# Note: rootDir is ".." so dist includes backend/src structure
+COPY --from=builder /app/backend/dist ./dist
+COPY --from=builder /app/backend/node_modules ./node_modules
+COPY --from=builder /app/backend/package.json ./
 
 # Switch to non-root user
 USER nestjs
@@ -41,9 +46,12 @@ USER nestjs
 # Expose WebSocket port
 EXPOSE 3001
 
+ENV PORT=3001
+ENV NODE_ENV=production
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3001/health || exit 1
 
-# Start the server
-CMD ["node", "dist/main.js"]
+# Start the server - path based on tsconfig rootDir=".." 
+CMD ["node", "dist/backend/src/main.js"]

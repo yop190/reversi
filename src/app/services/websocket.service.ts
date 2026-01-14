@@ -5,6 +5,7 @@
 
 import { Injectable, signal, computed, inject, NgZone } from '@angular/core';
 import { io, Socket } from 'socket.io-client';
+import { environment } from '../../environments/environment';
 import {
   ClientEvents,
   ServerEvents,
@@ -40,8 +41,8 @@ export class WebSocketService {
   private socket: Socket | null = null;
   private ngZone = inject(NgZone);
   
-  // Server URL - configurable via environment
-  private readonly serverUrl = 'http://localhost:3001';
+  // Server URL - from environment configuration
+  private readonly serverUrl = environment.wsUrl;
   
   // Connection state
   private _connectionState = signal<ConnectionState>({

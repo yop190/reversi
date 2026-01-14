@@ -5,14 +5,27 @@ import { AppModule } from './app.module';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: {
-      origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'],
+      origin: (origin, callback) => {
+        // Allow requests with no origin (like mobile apps or curl)
+        if (!origin) return callback(null, true);
+        
+        const allowedPatterns = [
+          /^http:\/\/localhost(:\d+)?$/, // localhost with any port
+          /^https:\/\/reversi\.lebrere\.fr$/, // custom domain
+          /^https:\/\/.*\.azurecontainerapps\.io$/, // any Azure Container Apps
+        ];
+        
+        const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+        callback(null, isAllowed);
+      },
       credentials: true,
     },
   });
   
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`🎮 Reversi Server running on http://localhost:${port}`);
+  console.log(`🎮 Reversi Server running on port ${port}`);
+  console.log(`📡 WebSocket server ready for connections`);
 }
 
 bootstrap();

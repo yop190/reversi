@@ -1,6 +1,6 @@
 # ============================================
 # Reversi - CI/CD Pipeline
-# Deploys to Azure Container Apps
+# Deploys Frontend + Backend to Azure Container Apps
 # ============================================
 
 name: Build and Deploy to Azure
@@ -17,10 +17,14 @@ env:
   AZURE_LOCATION: westeurope
   AZURE_CONTAINER_REGISTRY: acrreversiprod
   AZURE_CONTAINER_APP_ENV: cae-reversi-prod
-  AZURE_CONTAINER_APP: ca-reversi
+  
+  # Container Apps
+  AZURE_CONTAINER_APP_FRONTEND: ca-reversi
+  AZURE_CONTAINER_APP_BACKEND: ca-reversi-backend
   
   # Image Configuration
-  IMAGE_NAME: reversi
+  IMAGE_NAME_FRONTEND: reversi-frontend
+  IMAGE_NAME_BACKEND: reversi-backend
   
   # Custom Domain
   CUSTOM_DOMAIN: reversi.lebrere.fr
@@ -43,31 +47,27 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
 
-      - name: Run tests
+      - name: Run frontend tests
         run: npm run test -- --watch=false --browsers=ChromeHeadless
 
-      - name: Build application
+      - name: Build frontend
         run: npm run build -- --configuration production
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          retention-days: 1
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
 
   # ==========================================
-  # Job 2: Build Docker Image and Push to ACR
+  # Job 2: Build and Push Docker Images
   # ==========================================
-  build-image:
-    name: Build and Push Docker Image
+  build-images:
+    name: Build and Push Docker Images
     runs-on: ubuntu-latest
     needs: build-and-test
-    outputs:
-      image-tag: ${{ steps.meta.outputs.tags }}
     
     steps:
       - name: Checkout code
@@ -87,14 +87,14 @@ jobs:
           az provider register -n Microsoft.OperationalInsights --wait || true
           az provider register -n Microsoft.App --wait || true
           
-          # Create Resource Group (idempotent)
+          # Create Resource Group
           echo "📦 Creating Resource Group..."
           az group create \
             --name ${{ env.AZURE_RESOURCE_GROUP }} \
             --location ${{ env.AZURE_LOCATION }} \
             --output none
           
-          # Create Container Registry (idempotent)
+          # Create Container Registry
           echo "📦 Creating Container Registry..."
           az acr create \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
@@ -103,7 +103,7 @@ jobs:
             --admin-enabled true \
             --output none 2>/dev/null || echo "ACR already exists"
           
-          # Create Container Apps Environment (idempotent)
+          # Create Container Apps Environment
           echo "📦 Creating Container Apps Environment..."
           az containerapp env create \
             --name ${{ env.AZURE_CONTAINER_APP_ENV }} \
@@ -132,30 +132,120 @@ jobs:
         run: |
           az acr login --name ${{ env.AZURE_CONTAINER_REGISTRY }}
 
-      - name: Build and push Docker image
-        id: meta
+      - name: Build and push Backend Docker image
         run: |
-          # Generate image tag based on SHA
-          IMAGE_TAG="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          LATEST_TAG="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest"
+          BACKEND_TAG="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME_BACKEND }}:${{ github.sha }}"
+          BACKEND_LATEST="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME_BACKEND }}:latest"
           
-          echo "🐳 Building Docker image..."
-          docker build -t $IMAGE_TAG -t $LATEST_TAG .
+          echo "🐳 Building Backend Docker image..."
+          docker build -f backend/Dockerfile -t $BACKEND_TAG -t $BACKEND_LATEST .
           
-          echo "📤 Pushing to ACR..."
-          docker push $IMAGE_TAG
-          docker push $LATEST_TAG
+          echo "📤 Pushing Backend to ACR..."
+          docker push $BACKEND_TAG
+          docker push $BACKEND_LATEST
           
-          echo "tags=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          echo "✅ Image pushed: $IMAGE_TAG"
+          echo "BACKEND_IMAGE_TAG=$BACKEND_TAG" >> $GITHUB_ENV
+
+      - name: Deploy Backend Container App
+        id: deploy-backend
+        run: |
+          echo "🚀 Deploying Backend Container App..."
+          
+          # Get ACR credentials
+          ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "username" -o tsv)
+          ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "passwords[0].value" -o tsv)
+          
+          # Check if Backend Container App exists
+          if az containerapp show --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} &>/dev/null; then
+            echo "📦 Backend Container App exists, updating..."
+            az containerapp update \
+              --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --image ${{ env.BACKEND_IMAGE_TAG }} \
+              --output none
+          else
+            echo "📦 Creating new Backend Container App..."
+            az containerapp create \
+              --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} \
+              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --environment ${{ env.AZURE_CONTAINER_APP_ENV }} \
+              --image ${{ env.BACKEND_IMAGE_TAG }} \
+              --target-port 3001 \
+              --ingress external \
+              --registry-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
+              --registry-username $ACR_USERNAME \
+              --registry-password $ACR_PASSWORD \
+              --min-replicas 1 \
+              --max-replicas 5 \
+              --cpu 0.25 \
+              --memory 0.5Gi \
+              --output none
+          fi
+          
+          # Get Backend FQDN
+          BACKEND_FQDN=$(az containerapp show \
+            --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --query properties.configuration.ingress.fqdn \
+            --output tsv)
+          
+          echo "✅ Backend deployed at: https://$BACKEND_FQDN"
+          echo "fqdn=$BACKEND_FQDN" >> $GITHUB_OUTPUT
+          echo "BACKEND_FQDN=$BACKEND_FQDN" >> $GITHUB_ENV
+
+      - name: Wait for Backend to be ready
+        run: |
+          echo "⏳ Waiting for Backend to be ready..."
+          for i in {1..20}; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.BACKEND_FQDN }}/health" --max-time 10 || echo "000")
+            if [ "$RESPONSE" = "200" ]; then
+              echo "✅ Backend is healthy!"
+              curl -s "https://${{ env.BACKEND_FQDN }}/health"
+              break
+            fi
+            echo "  Attempt $i: Status $RESPONSE - waiting..."
+            sleep 10
+          done
+
+      - name: Update Frontend environment with Backend URL
+        run: |
+          # Update production environment file with actual backend URL
+          cat > src/environments/environment.prod.ts << EOF
+          /**
+           * Production environment configuration
+           * Backend URL is set to the Azure Container App
+           */
+          export const environment = {
+            production: true,
+            backendUrl: 'https://${{ env.BACKEND_FQDN }}',
+            wsUrl: 'https://${{ env.BACKEND_FQDN }}',
+          };
+          EOF
+          
+          echo "📝 Updated environment.prod.ts with backend URL: https://${{ env.BACKEND_FQDN }}"
+          cat src/environments/environment.prod.ts
+
+      - name: Build and push Frontend Docker image
+        run: |
+          FRONTEND_TAG="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}"
+          FRONTEND_LATEST="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME_FRONTEND }}:latest"
+          
+          echo "🐳 Building Frontend Docker image..."
+          docker build -t $FRONTEND_TAG -t $FRONTEND_LATEST .
+          
+          echo "📤 Pushing Frontend to ACR..."
+          docker push $FRONTEND_TAG
+          docker push $FRONTEND_LATEST
+          
+          echo "FRONTEND_IMAGE_TAG=$FRONTEND_TAG" >> $GITHUB_ENV
 
   # ==========================================
-  # Job 3: Deploy to Azure Container Apps
+  # Job 3: Deploy Frontend to Azure Container Apps
   # ==========================================
-  deploy:
-    name: Deploy to Azure Container Apps
+  deploy-frontend:
+    name: Deploy Frontend
     runs-on: ubuntu-latest
-    needs: build-image
+    needs: build-images
     environment:
       name: production
       url: https://${{ env.CUSTOM_DOMAIN }}
@@ -166,33 +256,31 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Deploy Container App
+      - name: Deploy Frontend Container App
         run: |
-          IMAGE_TAG="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
+          FRONTEND_TAG="${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME_FRONTEND }}:${{ github.sha }}"
           
-          echo "🚀 Deploying Container App..."
+          echo "🚀 Deploying Frontend Container App..."
           
           # Get ACR credentials
           ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "username" -o tsv)
           ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "passwords[0].value" -o tsv)
           
-          # Check if Container App exists
-          if az containerapp show --name ${{ env.AZURE_CONTAINER_APP }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} &>/dev/null; then
-            echo "📦 Container App exists, updating..."
+          # Check if Frontend Container App exists
+          if az containerapp show --name ${{ env.AZURE_CONTAINER_APP_FRONTEND }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} &>/dev/null; then
+            echo "📦 Frontend Container App exists, updating..."
             az containerapp update \
-              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_FRONTEND }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --image $IMAGE_TAG \
-              --min-replicas 1 \
-              --max-replicas 10 \
+              --image $FRONTEND_TAG \
               --output none
           else
-            echo "📦 Creating new Container App..."
+            echo "📦 Creating new Frontend Container App..."
             az containerapp create \
-              --name ${{ env.AZURE_CONTAINER_APP }} \
+              --name ${{ env.AZURE_CONTAINER_APP_FRONTEND }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --environment ${{ env.AZURE_CONTAINER_APP_ENV }} \
-              --image $IMAGE_TAG \
+              --image $FRONTEND_TAG \
               --target-port 80 \
               --ingress external \
               --registry-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
@@ -205,37 +293,35 @@ jobs:
               --output none
           fi
           
-          # Get the default FQDN
-          FQDN=$(az containerapp show \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
+          # Get Frontend FQDN
+          FRONTEND_FQDN=$(az containerapp show \
+            --name ${{ env.AZURE_CONTAINER_APP_FRONTEND }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --query properties.configuration.ingress.fqdn \
             --output tsv)
           
-          echo "✅ Container App deployed"
-          echo "📍 Default URL: https://$FQDN"
-          echo "CONTAINER_APP_FQDN=$FQDN" >> $GITHUB_ENV
+          echo "✅ Frontend deployed at: https://$FRONTEND_FQDN"
+          echo "FRONTEND_FQDN=$FRONTEND_FQDN" >> $GITHUB_ENV
 
       - name: Configure Custom Domain
         run: |
           echo "🌐 Configuring custom domain: ${{ env.CUSTOM_DOMAIN }}"
           
-          # Add custom domain (requires DNS CNAME to be configured first)
-          # This command is idempotent
+          # Add custom domain (requires DNS to be configured)
           az containerapp hostname add \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --name ${{ env.AZURE_CONTAINER_APP_FRONTEND }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --hostname ${{ env.CUSTOM_DOMAIN }} \
-            --output none 2>/dev/null || echo "Domain may already be configured or DNS not propagated yet"
+            --output none 2>/dev/null || echo "Domain may already be configured"
           
           # Bind managed certificate
           az containerapp hostname bind \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --name ${{ env.AZURE_CONTAINER_APP_FRONTEND }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --hostname ${{ env.CUSTOM_DOMAIN }} \
             --environment ${{ env.AZURE_CONTAINER_APP_ENV }} \
             --validation-method CNAME \
-            --output none 2>/dev/null || echo "Certificate binding may already exist or require DNS propagation"
+            --output none 2>/dev/null || echo "Certificate may already exist"
           
           echo "✅ Custom domain configuration complete"
 
@@ -244,138 +330,180 @@ jobs:
           echo "⏳ Waiting for deployment to stabilize..."
           sleep 30
 
-      - name: Verify deployment - Default URL
+  # ==========================================
+  # Job 4: Verify Deployment & Multiplayer
+  # ==========================================
+  verify-deployment:
+    name: Verify Deployment & Multiplayer
+    runs-on: ubuntu-latest
+    needs: [build-images, deploy-frontend]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Verify Frontend Health
         run: |
-          echo "🔍 Verifying default URL health..."
-          
-          FQDN=$(az containerapp show \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
-            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-            --query properties.configuration.ingress.fqdn \
-            --output tsv)
-          
-          HEALTH_URL="https://${FQDN}/health"
+          echo "🔍 Verifying Frontend health..."
           
           for i in {1..10}; do
-            echo "Attempt $i: Checking $HEALTH_URL"
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" --max-time 10 || echo "000")
-            
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.CUSTOM_DOMAIN }}/health" --max-time 15 || echo "000")
             if [ "$RESPONSE" = "200" ]; then
-              echo "✅ Default URL health check passed!"
-              BODY=$(curl -s "$HEALTH_URL" --max-time 10)
-              echo "Response body: $BODY"
-              exit 0
+              echo "✅ Frontend health check passed!"
+              curl -s "https://${{ env.CUSTOM_DOMAIN }}/health"
+              echo ""
+              break
             fi
-            
-            echo "Status: $RESPONSE - Retrying in 10s..."
+            echo "Attempt $i: Status $RESPONSE - waiting..."
             sleep 10
           done
           
-          echo "❌ Default URL health check failed after 10 attempts"
-          exit 1
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Frontend health check failed!"
+            exit 1
+          fi
 
-      - name: Verify deployment - Custom Domain
-        continue-on-error: true
+      - name: Get Backend URL
+        id: backend-url
         run: |
-          echo "🔍 Verifying custom domain: https://${{ env.CUSTOM_DOMAIN }}"
-          
-          HEALTH_URL="https://${{ env.CUSTOM_DOMAIN }}/health"
-          
-          for i in {1..6}; do
-            echo "Attempt $i: Checking $HEALTH_URL"
-            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL" --max-time 10 2>/dev/null || echo "000")
-            
-            if [ "$RESPONSE" = "200" ]; then
-              echo "✅ Custom domain health check passed!"
-              BODY=$(curl -s "$HEALTH_URL" --max-time 10)
-              echo "Response body: $BODY"
-              
-              # Verify TLS certificate
-              echo "🔒 Verifying TLS certificate..."
-              openssl s_client -connect ${{ env.CUSTOM_DOMAIN }}:443 -servername ${{ env.CUSTOM_DOMAIN }} </dev/null 2>/dev/null | openssl x509 -noout -dates || echo "Certificate verification requires DNS propagation"
-              
-              exit 0
-            fi
-            
-            echo "Status: $RESPONSE - Retrying in 15s (DNS may still be propagating)..."
-            sleep 15
-          done
-          
-          echo "⚠️ Custom domain not yet accessible (DNS propagation may be pending)"
-          echo "📌 Please configure DNS CNAME: ${{ env.CUSTOM_DOMAIN }} -> $CONTAINER_APP_FQDN"
-
-      - name: Deployment Summary
-        run: |
-          FQDN=$(az containerapp show \
-            --name ${{ env.AZURE_CONTAINER_APP }} \
+          BACKEND_FQDN=$(az containerapp show \
+            --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} \
             --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
             --query properties.configuration.ingress.fqdn \
             --output tsv)
-          
-          echo "========================================"
-          echo "🎉 DEPLOYMENT COMPLETE"
-          echo "========================================"
-          echo ""
-          echo "📍 Default URL: https://$FQDN"
-          echo "🌐 Custom Domain: https://${{ env.CUSTOM_DOMAIN }}"
-          echo ""
-          echo "📦 Image: ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}"
-          echo "🔄 Revision: ${{ github.sha }}"
-          echo ""
-          echo "📊 Azure Portal: https://portal.azure.com/#@/resource/subscriptions/$(az account show --query id -o tsv)/resourceGroups/${{ env.AZURE_RESOURCE_GROUP }}/providers/Microsoft.App/containerApps/${{ env.AZURE_CONTAINER_APP }}"
-          echo ""
-          echo "⚡ Scaling: 1-10 replicas (HTTP auto-scaling at 100 concurrent requests)"
-          echo ""
-          echo "========================================"
+          echo "BACKEND_FQDN=$BACKEND_FQDN" >> $GITHUB_ENV
+          echo "Backend URL: https://$BACKEND_FQDN"
 
-  # ==========================================
-  # Job 4: Final Verification
-  # ==========================================
-  verify:
-    name: Final Verification
-    runs-on: ubuntu-latest
-    needs: deploy
-    
-    steps:
-      - name: Verify Production Endpoint
+      - name: Verify Backend Health
         run: |
-          echo "🔍 Final verification of https://${{ env.CUSTOM_DOMAIN }}"
+          echo "🔍 Verifying Backend health..."
           
-          for i in {1..12}; do
-            echo "Verification attempt $i/12..."
-            
-            # Check health endpoint
-            HEALTH_RESPONSE=$(curl -s -o /tmp/health.json -w "%{http_code}" "https://${{ env.CUSTOM_DOMAIN }}/health" --max-time 15 2>/dev/null || echo "000")
-            
-            if [ "$HEALTH_RESPONSE" = "200" ]; then
-              BODY=$(cat /tmp/health.json)
-              if [ -n "$BODY" ]; then
-                echo "✅ Health endpoint: HTTP 200 with body"
-                echo "Response: $BODY"
-                
-                # Check main page
-                MAIN_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.CUSTOM_DOMAIN }}/" --max-time 15 2>/dev/null || echo "000")
-                echo "Main page response: $MAIN_RESPONSE"
-                
-                if [ "$MAIN_RESPONSE" = "200" ]; then
-                  echo ""
-                  echo "✅✅✅ ALL VERIFICATIONS PASSED ✅✅✅"
-                  echo ""
-                  echo "🎮 Application is live at: https://${{ env.CUSTOM_DOMAIN }}"
-                  exit 0
-                fi
-              fi
+          for i in {1..10}; do
+            RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "https://${{ env.BACKEND_FQDN }}/health" --max-time 15 || echo "000")
+            if [ "$RESPONSE" = "200" ]; then
+              echo "✅ Backend health check passed!"
+              curl -s "https://${{ env.BACKEND_FQDN }}/health"
+              echo ""
+              break
             fi
-            
-            echo "Waiting 15 seconds before retry..."
-            sleep 15
+            echo "Attempt $i: Status $RESPONSE - waiting..."
+            sleep 10
           done
           
+          if [ "$RESPONSE" != "200" ]; then
+            echo "❌ Backend health check failed!"
+            exit 1
+          fi
+
+      - name: Install Socket.IO Client for Testing
+        run: |
+          npm install socket.io-client
+
+      - name: Test WebSocket Multiplayer Connectivity
+        run: |
+          echo "🎮 Testing WebSocket multiplayer connectivity..."
+          
+          cat > test-websocket.js << 'EOF'
+          const { io } = require('socket.io-client');
+          
+          const BACKEND_URL = process.env.BACKEND_URL;
+          const TIMEOUT = 30000; // 30 seconds
+          
+          console.log(`Connecting to: ${BACKEND_URL}`);
+          
+          const socket = io(BACKEND_URL, {
+            transports: ['websocket', 'polling'],
+            timeout: TIMEOUT,
+            reconnection: false,
+          });
+          
+          let connected = false;
+          let roomCreated = false;
+          
+          const timeoutId = setTimeout(() => {
+            console.error('❌ Connection timeout - multiplayer is not working!');
+            process.exit(1);
+          }, TIMEOUT);
+          
+          socket.on('connect', () => {
+            console.log('✅ WebSocket connected!');
+            connected = true;
+          });
+          
+          socket.on('connected', (data) => {
+            console.log('✅ Received player info:', JSON.stringify(data));
+            
+            // Try to create a room
+            console.log('📝 Creating a test room...');
+            socket.emit('createRoom', { roomName: 'CI-Test-Room' });
+          });
+          
+          socket.on('roomJoined', (data) => {
+            console.log('✅ Room created/joined successfully!', JSON.stringify(data));
+            roomCreated = true;
+            
+            // Leave the room and disconnect
+            socket.emit('leaveRoom');
+            
+            setTimeout(() => {
+              clearTimeout(timeoutId);
+              console.log('');
+              console.log('✅✅✅ MULTIPLAYER CONNECTIVITY TEST PASSED ✅✅✅');
+              console.log('');
+              socket.disconnect();
+              process.exit(0);
+            }, 1000);
+          });
+          
+          socket.on('lobbyUpdate', (data) => {
+            console.log('📊 Lobby update received:', JSON.stringify(data));
+          });
+          
+          socket.on('error', (error) => {
+            console.log('⚠️ Server error:', JSON.stringify(error));
+          });
+          
+          socket.on('connect_error', (error) => {
+            console.error('❌ Connection error:', error.message);
+            clearTimeout(timeoutId);
+            process.exit(1);
+          });
+          
+          socket.on('disconnect', (reason) => {
+            console.log('Disconnected:', reason);
+            if (!roomCreated) {
+              clearTimeout(timeoutId);
+              process.exit(1);
+            }
+          });
+          EOF
+          
+          BACKEND_URL="https://${{ env.BACKEND_FQDN }}" node test-websocket.js
+
+      - name: Deployment Summary
+        run: |
           echo ""
-          echo "⚠️ Custom domain verification incomplete"
-          echo "This may be due to DNS propagation delay."
+          echo "========================================"
+          echo "🎉 DEPLOYMENT COMPLETE & VERIFIED"
+          echo "========================================"
           echo ""
-          echo "Please verify manually:"
-          echo "1. DNS CNAME record: ${{ env.CUSTOM_DOMAIN }} -> Container App FQDN"
-          echo "2. Wait for DNS propagation (up to 24 hours)"
-          echo "3. Access https://${{ env.CUSTOM_DOMAIN }}"
+          echo "📍 Frontend: https://${{ env.CUSTOM_DOMAIN }}"
+          echo "📍 Backend:  https://${{ env.BACKEND_FQDN }}"
+          echo ""
+          echo "✅ Frontend health: OK"
+          echo "✅ Backend health: OK"
+          echo "✅ WebSocket connectivity: OK"
+          echo "✅ Multiplayer rooms: OK"
+          echo ""
+          echo "🎮 Multiplayer is fully operational!"
+          echo "========================================"
