@@ -8,17 +8,27 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const game_gateway_1 = require("./game/game.gateway");
 const room_service_1 = require("./game/room.service");
 const game_service_1 = require("./game/game.service");
 const player_service_1 = require("./game/player.service");
 const health_controller_1 = require("./health.controller");
+const auth_module_1 = require("./auth/auth.module");
+const score_module_1 = require("./score/score.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [],
+        imports: [
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+                envFilePath: ['.env.local', '.env'],
+            }),
+            auth_module_1.AuthModule,
+            score_module_1.ScoreModule,
+        ],
         controllers: [health_controller_1.HealthController],
         providers: [game_gateway_1.GameGateway, room_service_1.RoomService, game_service_1.GameService, player_service_1.PlayerService],
     })

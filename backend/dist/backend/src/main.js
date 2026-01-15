@@ -6,13 +6,24 @@ const app_module_1 = require("./app.module");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(app_module_1.AppModule, {
         cors: {
-            origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'],
+            origin: (origin, callback) => {
+                if (!origin)
+                    return callback(null, true);
+                const allowedPatterns = [
+                    /^http:\/\/localhost(:\d+)?$/,
+                    /^https:\/\/reversi\.lebrere\.fr$/,
+                    /^https:\/\/.*\.azurecontainerapps\.io$/,
+                ];
+                const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+                callback(null, isAllowed);
+            },
             credentials: true,
         },
     });
     const port = process.env.PORT || 3001;
     await app.listen(port);
-    console.log(`🎮 Reversi Server running on http://localhost:${port}`);
+    console.log(`🎮 Reversi Server running on port ${port}`);
+    console.log(`📡 WebSocket server ready for connections`);
 }
 bootstrap();
 //# sourceMappingURL=main.js.map

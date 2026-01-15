@@ -12,11 +12,12 @@ let PlayerService = class PlayerService {
     constructor() {
         this.players = new Map();
     }
-    createPlayer(socketId) {
+    createPlayer(socketId, username, userId) {
         const player = {
             id: socketId,
-            username: `Guest_${socketId.substring(0, 6)}`,
+            username: username || `Guest_${socketId.substring(0, 6)}`,
             isSpectator: true,
+            userId: userId,
         };
         this.players.set(socketId, player);
         return player;

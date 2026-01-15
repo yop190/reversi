@@ -14,12 +14,12 @@ import { Player } from '../../models/game.types';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="flex flex-col sm:flex-row items-center gap-4 sm:gap-8">
+    <div class="flex flex-row items-center gap-2 sm:gap-8">
       <!-- Black (Human) Score -->
       <div class="score-card" 
            [class.active]="isHumanTurn()"
            [class.winner]="gameState.gameOver() && gameState.winner() === Player.Human">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
           <!-- Piece indicator -->
           <div class="piece-display black">
             <div class="piece-3d"></div>
@@ -31,9 +31,9 @@ import { Player } from '../../models/game.types';
           </div>
         </div>
         
-        <!-- Turn indicator -->
+        <!-- Turn indicator (hidden on mobile) -->
         @if (isHumanTurn() && !gameState.gameOver()) {
-          <div class="turn-indicator">
+          <div class="turn-indicator hidden sm:flex">
             <span class="turn-dot"></span>
             Your turn
           </div>
@@ -41,7 +41,7 @@ import { Player } from '../../models/game.types';
         @if (gameState.gameOver() && gameState.winner() === Player.Human) {
           <div class="winner-badge">
             <span class="material-symbols-outlined">emoji_events</span>
-            Winner!
+            <span class="hidden sm:inline">Winner!</span>
           </div>
         }
       </div>
@@ -50,7 +50,7 @@ import { Player } from '../../models/game.types';
       <div class="vs-divider">
         <span class="vs-text">VS</span>
         @if (!gameState.gameOver()) {
-          <div class="vs-line"></div>
+          <div class="vs-line hidden sm:block"></div>
         }
         @if (gameState.gameOver() && !gameState.winner()) {
           <span class="tie-text">TIE</span>
@@ -61,7 +61,7 @@ import { Player } from '../../models/game.types';
       <div class="score-card" 
            [class.active]="!isHumanTurn() && !gameState.gameOver()"
            [class.winner]="gameState.gameOver() && gameState.winner() === Player.Computer">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 sm:gap-3">
           <!-- Piece indicator -->
           <div class="piece-display white">
             <div class="piece-3d"></div>
@@ -73,9 +73,9 @@ import { Player } from '../../models/game.types';
           </div>
         </div>
         
-        <!-- Turn indicator -->
+        <!-- Turn indicator (hidden on mobile) -->
         @if (!isHumanTurn() && !gameState.gameOver()) {
-          <div class="turn-indicator thinking">
+          <div class="turn-indicator thinking hidden sm:flex">
             <span class="thinking-dot"></span>
             <span class="thinking-dot"></span>
             <span class="thinking-dot"></span>
@@ -85,7 +85,7 @@ import { Player } from '../../models/game.types';
         @if (gameState.gameOver() && gameState.winner() === Player.Computer) {
           <div class="winner-badge">
             <span class="material-symbols-outlined">emoji_events</span>
-            Winner!
+            <span class="hidden sm:inline">Winner!</span>
           </div>
         }
       </div>
@@ -100,13 +100,22 @@ import { Player } from '../../models/game.types';
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 0.5rem;
-      padding: 1rem 1.5rem;
-      border-radius: 1rem;
+      gap: 0.25rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.75rem;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       transition: all 0.3s ease;
-      min-width: 140px;
+      min-width: 90px;
+    }
+
+    @media (min-width: 640px) {
+      .score-card {
+        gap: 0.5rem;
+        padding: 1rem 1.5rem;
+        border-radius: 1rem;
+        min-width: 140px;
+      }
     }
 
     .score-card.active {
@@ -122,8 +131,8 @@ import { Player } from '../../models/game.types';
     }
 
     .piece-display {
-      width: 40px;
-      height: 40px;
+      width: 28px;
+      height: 28px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -131,26 +140,55 @@ import { Player } from '../../models/game.types';
       position: relative;
     }
 
+    @media (min-width: 640px) {
+      .piece-display {
+        width: 40px;
+        height: 40px;
+      }
+    }
+
     .piece-display.black .piece-3d {
-      width: 36px;
-      height: 36px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: linear-gradient(145deg, #374151, #1f2937);
       box-shadow: 
-        inset -3px -3px 6px rgba(0, 0, 0, 0.5),
-        inset 3px 3px 6px rgba(255, 255, 255, 0.1),
-        0 4px 8px rgba(0, 0, 0, 0.3);
+        inset -2px -2px 4px rgba(0, 0, 0, 0.5),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.1),
+        0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    @media (min-width: 640px) {
+      .piece-display.black .piece-3d {
+        width: 36px;
+        height: 36px;
+        box-shadow: 
+          inset -3px -3px 6px rgba(0, 0, 0, 0.5),
+          inset 3px 3px 6px rgba(255, 255, 255, 0.1),
+          0 4px 8px rgba(0, 0, 0, 0.3);
+      }
     }
 
     .piece-display.white .piece-3d {
-      width: 36px;
-      height: 36px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: linear-gradient(145deg, #ffffff, #e5e7eb);
       box-shadow: 
-        inset -3px -3px 6px rgba(0, 0, 0, 0.1),
-        inset 3px 3px 6px rgba(255, 255, 255, 0.8),
-        0 4px 8px rgba(0, 0, 0, 0.2);
+        inset -2px -2px 4px rgba(0, 0, 0, 0.1),
+        inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+        0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (min-width: 640px) {
+      .piece-display.white .piece-3d {
+        width: 36px;
+        height: 36px;
+        box-shadow: 
+          inset -3px -3px 6px rgba(0, 0, 0, 0.1),
+          inset 3px 3px 6px rgba(255, 255, 255, 0.8),
+          0 4px 8px rgba(0, 0, 0, 0.2);
+      }
     }
 
     .score-info {
@@ -160,18 +198,30 @@ import { Player } from '../../models/game.types';
     }
 
     .player-label {
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: rgba(255, 255, 255, 0.6);
       font-weight: 500;
     }
 
+    @media (min-width: 640px) {
+      .player-label {
+        font-size: 0.75rem;
+      }
+    }
+
     .score-value {
-      font-size: 2rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: white;
       line-height: 1;
+    }
+
+    @media (min-width: 640px) {
+      .score-value {
+        font-size: 2rem;
+      }
     }
 
     .turn-indicator {

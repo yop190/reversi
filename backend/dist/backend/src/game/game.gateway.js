@@ -11,31 +11,96 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var GameGateway_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.GameGateway = void 0;
 const websockets_1 = require("@nestjs/websockets");
+const common_1 = require("@nestjs/common");
+const jwt_1 = require("@nestjs/jwt");
+const config_1 = require("@nestjs/config");
 const socket_io_1 = require("socket.io");
 const game_types_1 = require("../../../shared/game.types");
 const room_service_1 = require("./room.service");
 const game_service_1 = require("./game.service");
 const player_service_1 = require("./player.service");
-let GameGateway = class GameGateway {
-    constructor(roomService, gameService, playerService) {
+const score_service_1 = require("../score/score.service");
+let GameGateway = GameGateway_1 = class GameGateway {
+    constructor(roomService, gameService, playerService, jwtService, scoreService, configService) {
         this.roomService = roomService;
         this.gameService = gameService;
         this.playerService = playerService;
+        this.jwtService = jwtService;
+        this.scoreService = scoreService;
+        this.configService = configService;
+        this.logger = new common_1.Logger(GameGateway_1.name);
+        const googleClientId = this.configService.get('GOOGLE_CLIENT_ID');
+        this.authEnabled = !!googleClientId && googleClientId !== 'not-configured' && googleClientId !== 'CONFIGURE_ME';
+        if (!this.authEnabled) {
+            this.logger.warn('⚠️ Authentication is DISABLED - Google OAuth not configured');
+        }
+        else {
+            this.logger.log('✅ Authentication is ENABLED');
+        }
+    }
+    validateToken(client) {
+        try {
+            const token = client.handshake.auth?.token ||
+                client.handshake.query?.token ||
+                client.handshake.headers?.authorization?.replace('Bearer ', '');
+            if (!token) {
+                return null;
+            }
+            const payload = this.jwtService.verify(token);
+            return {
+                id: payload.sub,
+                googleId: payload.googleId,
+                email: payload.email,
+                displayName: payload.displayName,
+            };
+        }
+        catch (error) {
+            this.logger.warn(`Token validation failed: ${error}`);
+            return null;
+        }
     }
     handleConnection(client) {
-        console.log(`Client connected: ${client.id}`);
-        const player = this.playerService.createPlayer(client.id);
+        this.logger.log(`Client attempting connection: ${client.id}`);
+        const user = this.validateToken(client);
+        if (this.authEnabled && !user) {
+            this.logger.warn(`Unauthenticated connection rejected: ${client.id}`);
+            client.emit(game_types_1.ServerEvents.Error, {
+                message: 'Authentication required. Please sign in with Google.',
+                code: 'AUTH_REQUIRED',
+            });
+            client.disconnect(true);
+            return;
+        }
+        if (!user && !this.authEnabled) {
+            const anonymousId = `anon-${client.id.substring(0, 8)}`;
+            client.user = {
+                id: anonymousId,
+                googleId: '',
+                email: '',
+                displayName: `Player-${anonymousId.substring(5, 10)}`,
+            };
+            this.logger.log(`Anonymous user connected (auth disabled): ${client.user.displayName}`);
+        }
+        else if (user) {
+            client.user = user;
+            this.logger.log(`Authenticated user connected: ${user.displayName} (${user.email})`);
+        }
+        const player = this.playerService.createPlayer(client.id, client.user?.displayName || 'Anonymous', client.user?.id);
         client.emit(game_types_1.ServerEvents.Connected, {
             playerId: player.id,
             username: player.username,
+            userId: client.user?.id || '',
+            email: client.user?.email || '',
+            authEnabled: this.authEnabled,
         });
         this.broadcastLobbyUpdate();
     }
     handleDisconnect(client) {
-        console.log(`Client disconnected: ${client.id}`);
+        this.logger.log(`Client disconnected: ${client.id}`);
         const room = this.roomService.getPlayerRoom(client.id);
         const { wasPlayer } = this.roomService.leaveRoom(client.id);
         this.playerService.removePlayer(client.id);
@@ -161,11 +226,34 @@ let GameGateway = class GameGateway {
         };
         this.server.to(room.id).emit(game_types_1.ServerEvents.GameStateUpdate, updatePayload);
         if (result.newState.gameOver) {
+            this.recordGameScore(room, result.newState);
             this.server.to(room.id).emit(game_types_1.ServerEvents.GameOver, {
                 winner: result.newState.winner,
                 blackScore: result.newState.blackScore,
                 whiteScore: result.newState.whiteScore,
             });
+        }
+    }
+    async recordGameScore(room, gameState) {
+        try {
+            const blackPlayer = room.players.find((p) => p.color === 'black');
+            const whitePlayer = room.players.find((p) => p.color === 'white');
+            if (!blackPlayer?.userId || !whitePlayer?.userId) {
+                this.logger.warn('Cannot record score: player IDs not found');
+                return;
+            }
+            const winner = gameState.winner;
+            await this.scoreService.recordGameResult({
+                winner,
+                blackPlayerId: blackPlayer.userId,
+                whitePlayerId: whitePlayer.userId,
+                blackScore: gameState.blackScore,
+                whiteScore: gameState.whiteScore,
+            });
+            this.logger.log(`Game score recorded: ${winner} wins`);
+        }
+        catch (error) {
+            this.logger.error('Failed to record game score:', error);
         }
     }
     handlePassTurn(client) {
@@ -321,15 +409,29 @@ __decorate([
     __metadata("design:paramtypes", [socket_io_1.Socket]),
     __metadata("design:returntype", void 0)
 ], GameGateway.prototype, "handleRestartGame", null);
-exports.GameGateway = GameGateway = __decorate([
+exports.GameGateway = GameGateway = GameGateway_1 = __decorate([
     (0, websockets_1.WebSocketGateway)({
         cors: {
-            origin: ['http://localhost:4200', 'http://localhost:4201', 'http://localhost'],
+            origin: (origin, callback) => {
+                if (!origin)
+                    return callback(null, true);
+                const allowedPatterns = [
+                    /^http:\/\/localhost(:\d+)?$/,
+                    /^https:\/\/reversi\.lebrere\.fr$/,
+                    /^https:\/\/.*\.azurecontainerapps\.io$/,
+                ];
+                const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
+                callback(null, isAllowed);
+            },
             credentials: true,
         },
+        transports: ['websocket', 'polling'],
     }),
     __metadata("design:paramtypes", [room_service_1.RoomService,
         game_service_1.GameService,
-        player_service_1.PlayerService])
+        player_service_1.PlayerService,
+        jwt_1.JwtService,
+        score_service_1.ScoreService,
+        config_1.ConfigService])
 ], GameGateway);
 //# sourceMappingURL=game.gateway.js.map
