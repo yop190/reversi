@@ -12,6 +12,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { WebSocketService } from '../../services/websocket.service';
 import { I18nService } from '../../services/i18n.service';
+import { SoundService } from '../../services/sound.service';
 import { MultiplayerBoardComponent } from '../multiplayer-board/multiplayer-board.component';
 import { PlayerColor } from '@shared/game.types';
 
@@ -50,6 +51,21 @@ import { PlayerColor } from '@shared/game.types';
         </div>
         
         <div class="header-actions">
+          <!-- Sound Toggle -->
+          <button mat-icon-button 
+                  (click)="sound.toggleSound()"
+                  [matTooltip]="sound.enabled() ? 'Mute sounds' : 'Enable sounds'"
+                  class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+            <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
+          </button>
+          <!-- Music Toggle -->
+          <button mat-icon-button 
+                  (click)="sound.toggleMusic()"
+                  [matTooltip]="sound.musicEnabled() ? 'Stop music' : 'Play music'"
+                  class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+            <mat-icon>{{ sound.musicEnabled() ? 'music_note' : 'music_off' }}</mat-icon>
+          </button>
+          
           @if (!ws.isSpectator() && !ws.gameInProgress()) {
             @if (roomState().room?.players?.length === 2) {
               <button mat-raised-button color="primary" (click)="restartGame()">
@@ -539,6 +555,7 @@ import { PlayerColor } from '@shared/game.types';
 export class GameRoomComponent implements OnInit {
   ws = inject(WebSocketService);
   i18n = inject(I18nService);
+  sound = inject(SoundService);
   private snackBar = inject(MatSnackBar);
   
   readonly roomState = this.ws.roomState;
