@@ -12,7 +12,7 @@ COPY shared ./shared
 # Copy backend package files
 COPY backend/package*.json ./backend/
 
-# Install dependencies
+# Install ALL dependencies first (needed for build)
 WORKDIR /app/backend
 RUN npm ci
 
@@ -23,11 +23,8 @@ COPY backend/tsconfig.json ./
 # Build the application
 RUN npm run build
 
-# Prune devDependencies for production (removes cross-spawn, glob vulnerabilities from ts-node)
-RUN npm prune --production
-
 # ============================================
-# Production Stage
+# Production Stage - Clean install prod deps only
 # ============================================
 FROM node:20-alpine
 
@@ -37,11 +34,15 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S nestjs -u 1001
 
-# Copy built application and dependencies
-# Note: rootDir is ".." so dist includes backend/src structure
+# Copy package files for production install
+COPY backend/package*.json ./
+
+# Install ONLY production dependencies (no devDependencies = no cross-spawn/glob)
+RUN npm ci --omit=dev && \
+    npm cache clean --force
+
+# Copy built application from builder
 COPY --from=builder /app/backend/dist ./dist
-COPY --from=builder /app/backend/node_modules ./node_modules
-COPY --from=builder /app/backend/package.json ./
 
 # Switch to non-root user
 USER nestjs
