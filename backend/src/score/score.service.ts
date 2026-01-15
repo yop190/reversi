@@ -4,7 +4,7 @@
  */
 
 import { Injectable, Logger } from '@nestjs/common';
-import { FirestoreService, PlayerScore, LeaderboardEntry } from './firestore.service';
+import { AzureTableService, PlayerScore, LeaderboardEntry } from './azure-table.service';
 
 export interface GameResult {
   winner: 'black' | 'white' | 'draw';
@@ -26,7 +26,7 @@ const POINTS = {
 export class ScoreService {
   private readonly logger = new Logger(ScoreService.name);
 
-  constructor(private firestoreService: FirestoreService) {}
+  constructor(private azureTableService: AzureTableService) {}
 
   /**
    * Record game result and update scores
@@ -71,8 +71,8 @@ export class ScoreService {
 
     // Persist updates
     const [updatedBlack, updatedWhite] = await Promise.all([
-      this.firestoreService.upsertPlayerScore(blackScore),
-      this.firestoreService.upsertPlayerScore(whiteScore),
+      this.azureTableService.upsertPlayerScore(blackScore),
+      this.azureTableService.upsertPlayerScore(whiteScore),
     ]);
 
     this.logger.log(`Game result recorded: ${result.winner} wins`);
@@ -87,20 +87,20 @@ export class ScoreService {
    * Get player score by user ID
    */
   async getPlayerScore(userId: string): Promise<PlayerScore | null> {
-    return this.firestoreService.getPlayerScore(userId);
+    return this.azureTableService.getPlayerScore(userId);
   }
 
   /**
    * Get or create player score
    */
   async getOrCreatePlayerScore(userId: string): Promise<PlayerScore> {
-    const existing = await this.firestoreService.getPlayerScore(userId);
+    const existing = await this.azureTableService.getPlayerScore(userId);
     if (existing) {
       return existing;
     }
 
     // Create new score
-    return this.firestoreService.upsertPlayerScore({
+    return this.azureTableService.upsertPlayerScore({
       userId,
       wins: 0,
       losses: 0,
@@ -117,7 +117,7 @@ export class ScoreService {
     userId: string,
     profile: { displayName?: string; photoUrl?: string; email?: string; googleId?: string }
   ): Promise<PlayerScore> {
-    return this.firestoreService.upsertPlayerScore({
+    return this.azureTableService.upsertPlayerScore({
       userId,
       ...profile,
     });
@@ -127,14 +127,14 @@ export class ScoreService {
    * Get global leaderboard
    */
   async getLeaderboard(limit: number = 100): Promise<LeaderboardEntry[]> {
-    return this.firestoreService.getLeaderboard(limit);
+    return this.azureTableService.getLeaderboard(limit);
   }
 
   /**
    * Get player's rank in global leaderboard
    */
   async getPlayerRank(userId: string): Promise<number | null> {
-    return this.firestoreService.getPlayerRank(userId);
+    return this.azureTableService.getPlayerRank(userId);
   }
 
   /**
@@ -153,9 +153,9 @@ export class ScoreService {
   }
 
   /**
-   * Check if storage is persistent (Firestore) or in-memory
+   * Check if storage is persistent (Azure Table) or in-memory
    */
   isPersistent(): boolean {
-    return this.firestoreService.isConnected();
+    return this.azureTableService.isConnected();
   }
 }

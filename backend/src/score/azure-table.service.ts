@@ -1,15 +1,16 @@
 /**
- * Firestore Service
- * Handles connection to Google Cloud Firestore for persistent storage
- * Low-cost, serverless, auto-scaling NoSQL database
+ * Azure Table Storage Service
+ * Handles connection to Azure Table Storage for persistent score storage
+ * Cost-effective, serverless, auto-scaling NoSQL storage
  */
 
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { TableClient, AzureNamedKeyCredential, TableEntity } from '@azure/data-tables';
 
 export interface PlayerScore {
-  odataId: string;
-  odataEtag?: string;
+  partitionKey: string;  // 'scores'
+  rowKey: string;        // userId
   userId: string;
   googleId: string;
   displayName: string;
@@ -20,7 +21,7 @@ export interface PlayerScore {
   draws: number;
   totalGames: number;
   winRate: number;
-  score: number; // Total score points
+  score: number;
   lastGameAt: number;
   createdAt: number;
   updatedAt: number;
@@ -38,47 +39,50 @@ export interface LeaderboardEntry {
 }
 
 @Injectable()
-export class FirestoreService implements OnModuleInit {
-  private readonly logger = new Logger(FirestoreService.name);
-  private firestore: any = null;
-  private scoresCollection: any = null;
+export class AzureTableService implements OnModuleInit {
+  private readonly logger = new Logger(AzureTableService.name);
+  private tableClient: TableClient | null = null;
   private isInitialized = false;
 
-  // In-memory fallback when Firestore is not configured
+  // In-memory fallback when Azure Table Storage is not configured
   private inMemoryScores = new Map<string, PlayerScore>();
+
+  private readonly PARTITION_KEY = 'scores';
+  private readonly TABLE_NAME = 'playerscores';
 
   constructor(private configService: ConfigService) {}
 
   async onModuleInit() {
-    await this.initializeFirestore();
+    await this.initializeTableStorage();
   }
 
-  private async initializeFirestore() {
+  private async initializeTableStorage() {
     try {
-      const serviceAccountJson = this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT');
+      const connectionString = this.configService.get<string>('AZURE_STORAGE_CONNECTION_STRING');
       
-      if (!serviceAccountJson) {
-        this.logger.warn('FIREBASE_SERVICE_ACCOUNT not configured. Using in-memory storage (scores will not persist across restarts).');
+      if (!connectionString) {
+        this.logger.warn('AZURE_STORAGE_CONNECTION_STRING not configured. Using in-memory storage (scores will not persist across restarts).');
         return;
       }
 
-      const { Firestore } = await import('@google-cloud/firestore');
-      const serviceAccount = JSON.parse(serviceAccountJson);
+      // Create table client from connection string
+      this.tableClient = TableClient.fromConnectionString(connectionString, this.TABLE_NAME);
 
-      this.firestore = new Firestore({
-        projectId: serviceAccount.project_id,
-        credentials: {
-          client_email: serviceAccount.client_email,
-          private_key: serviceAccount.private_key,
-        },
-      });
+      // Create table if it doesn't exist
+      try {
+        await this.tableClient.createTable();
+        this.logger.log('Table created successfully');
+      } catch (error: any) {
+        // Table already exists - that's fine
+        if (error.statusCode !== 409) {
+          throw error;
+        }
+      }
 
-      this.scoresCollection = this.firestore.collection('player_scores');
       this.isInitialized = true;
-      
-      this.logger.log('Firestore initialized successfully');
+      this.logger.log('Azure Table Storage initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize Firestore:', error);
+      this.logger.error('Failed to initialize Azure Table Storage:', error);
       this.logger.warn('Using in-memory storage as fallback');
     }
   }
@@ -87,14 +91,14 @@ export class FirestoreService implements OnModuleInit {
    * Get player score by user ID
    */
   async getPlayerScore(userId: string): Promise<PlayerScore | null> {
-    if (this.isInitialized && this.scoresCollection) {
+    if (this.isInitialized && this.tableClient) {
       try {
-        const doc = await this.scoresCollection.doc(userId).get();
-        if (doc.exists) {
-          return { odataId: doc.id, ...doc.data() } as PlayerScore;
+        const entity = await this.tableClient.getEntity<PlayerScore>(this.PARTITION_KEY, userId);
+        return this.entityToPlayerScore(entity);
+      } catch (error: any) {
+        if (error.statusCode === 404) {
+          return null;
         }
-        return null;
-      } catch (error) {
         this.logger.error('Error fetching player score:', error);
       }
     }
@@ -111,7 +115,8 @@ export class FirestoreService implements OnModuleInit {
     const existingScore = await this.getPlayerScore(score.userId);
     
     const updatedScore: PlayerScore = {
-      odataId: score.userId,
+      partitionKey: this.PARTITION_KEY,
+      rowKey: score.userId,
       userId: score.userId,
       googleId: score.googleId || existingScore?.googleId || '',
       displayName: score.displayName || existingScore?.displayName || 'Unknown',
@@ -133,9 +138,9 @@ export class FirestoreService implements OnModuleInit {
       ? Math.round((updatedScore.wins / updatedScore.totalGames) * 100)
       : 0;
 
-    if (this.isInitialized && this.scoresCollection) {
+    if (this.isInitialized && this.tableClient) {
       try {
-        await this.scoresCollection.doc(score.userId).set(updatedScore, { merge: true });
+        await this.tableClient.upsertEntity(updatedScore as TableEntity<PlayerScore>, 'Replace');
         return updatedScore;
       } catch (error) {
         this.logger.error('Error upserting player score:', error);
@@ -153,17 +158,16 @@ export class FirestoreService implements OnModuleInit {
   async getLeaderboard(limit: number = 100): Promise<LeaderboardEntry[]> {
     let scores: PlayerScore[] = [];
 
-    if (this.isInitialized && this.scoresCollection) {
+    if (this.isInitialized && this.tableClient) {
       try {
-        const snapshot = await this.scoresCollection
-          .orderBy('score', 'desc')
-          .limit(limit)
-          .get();
+        // Azure Table Storage doesn't support ORDER BY, so we fetch all and sort in memory
+        const entities = this.tableClient.listEntities<PlayerScore>({
+          queryOptions: { filter: `PartitionKey eq '${this.PARTITION_KEY}'` }
+        });
         
-        scores = snapshot.docs.map((doc: any) => ({
-          odataId: doc.id,
-          ...doc.data(),
-        })) as PlayerScore[];
+        for await (const entity of entities) {
+          scores.push(this.entityToPlayerScore(entity));
+        }
       } catch (error) {
         this.logger.error('Error fetching leaderboard:', error);
         // Fallback to in-memory
@@ -200,9 +204,33 @@ export class FirestoreService implements OnModuleInit {
   }
 
   /**
-   * Check if Firestore is connected
+   * Check if Azure Table Storage is connected
    */
   isConnected(): boolean {
     return this.isInitialized;
+  }
+
+  /**
+   * Convert table entity to PlayerScore
+   */
+  private entityToPlayerScore(entity: TableEntity<PlayerScore>): PlayerScore {
+    return {
+      partitionKey: entity.partitionKey || this.PARTITION_KEY,
+      rowKey: entity.rowKey || '',
+      userId: entity.userId as string || entity.rowKey || '',
+      googleId: entity.googleId as string || '',
+      displayName: entity.displayName as string || 'Unknown',
+      email: entity.email as string || '',
+      photoUrl: entity.photoUrl as string | undefined,
+      wins: Number(entity.wins) || 0,
+      losses: Number(entity.losses) || 0,
+      draws: Number(entity.draws) || 0,
+      totalGames: Number(entity.totalGames) || 0,
+      winRate: Number(entity.winRate) || 0,
+      score: Number(entity.score) || 0,
+      lastGameAt: Number(entity.lastGameAt) || 0,
+      createdAt: Number(entity.createdAt) || 0,
+      updatedAt: Number(entity.updatedAt) || 0,
+    };
   }
 }

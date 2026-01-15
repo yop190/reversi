@@ -34,29 +34,32 @@
     <div class="flex-1 flex items-center justify-center p-4">
       <div class="mode-selection glass-card text-center">
         <!-- Top bar: Language left, User info right -->
-        <div class="absolute top-4 left-4">
+        <div class="absolute top-4 left-4 right-4 flex items-center justify-between">
           <app-language-selector></app-language-selector>
-        </div>
-        <div class="absolute top-4 right-4 flex items-center gap-2">
-          @if (isAuthenticated()) {
-            <div class="flex items-center gap-2">
-              @if (currentUser()?.photoUrl) {
-                <img [src]="currentUser()?.photoUrl" 
-                     alt="User avatar" 
-                     class="w-8 h-8 rounded-full">
-              }
-              <span class="text-white text-sm hidden sm:inline">{{ currentUser()?.displayName }}</span>
-              <button mat-icon-button (click)="logout()" matTooltip="Sign Out">
-                <mat-icon>logout</mat-icon>
+          <div class="flex items-center gap-2">
+            @if (isAuthenticated()) {
+              <div class="flex items-center gap-2">
+                @if (currentUser()?.photoUrl) {
+                  <img [src]="currentUser()?.photoUrl" 
+                       alt="User avatar" 
+                       class="w-8 h-8 rounded-full">
+                }
+                <span class="text-white text-sm hidden sm:inline">{{ currentUser()?.displayName }}</span>
+                <button mat-icon-button (click)="logout()" matTooltip="Sign Out">
+                  <mat-icon>logout</mat-icon>
+                </button>
+              </div>
+            } @else {
+              <button mat-button color="primary" (click)="showLogin()">
+                <mat-icon>login</mat-icon>
+                <span class="ml-1">{{ i18n.translate('signIn') }}</span>
               </button>
-            </div>
-          } @else {
-            <button mat-button color="primary" (click)="showLogin()">
-              <mat-icon>login</mat-icon>
-              <span class="ml-1">{{ i18n.translate('signIn') }}</span>
-            </button>
-          }
+            }
+          </div>
         </div>
+        
+        <!-- Separator line after header -->
+        <div class="absolute top-16 left-4 right-4 border-b border-white/10"></div>
 
         <!-- Logo -->
         <div class="logo-container">

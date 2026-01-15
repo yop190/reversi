@@ -209,9 +209,9 @@ jobs:
             --name "jwt-secret" \
             --query "value" -o tsv 2>/dev/null || echo "")
           
-          FIREBASE_SERVICE_ACCOUNT=$(az keyvault secret show \
+          AZURE_STORAGE_CONNECTION_STRING=$(az keyvault secret show \
             --vault-name ${{ env.AZURE_KEY_VAULT_NAME }} \
-            --name "firebase-service-account" \
+            --name "azure-storage-connection-string" \
             --query "value" -o tsv 2>/dev/null || echo "")
           
           # Set outputs (masked)
@@ -230,9 +230,9 @@ jobs:
             echo "jwt-secret=$JWT_SECRET" >> $GITHUB_OUTPUT
           fi
           
-          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
-            echo "::add-mask::$FIREBASE_SERVICE_ACCOUNT"
-            echo "firebase-service-account=$FIREBASE_SERVICE_ACCOUNT" >> $GITHUB_OUTPUT
+          if [ -n "$AZURE_STORAGE_CONNECTION_STRING" ]; then
+            echo "::add-mask::$AZURE_STORAGE_CONNECTION_STRING"
+            echo "azure-storage-connection-string=$AZURE_STORAGE_CONNECTION_STRING" >> $GITHUB_OUTPUT
           fi
           
           echo "✅ Secrets fetched from Key Vault"
@@ -268,7 +268,7 @@ jobs:
           GOOGLE_CLIENT_ID="${{ steps.keyvault-secrets.outputs.google-client-id }}"
           GOOGLE_CLIENT_SECRET="${{ steps.keyvault-secrets.outputs.google-client-secret }}"
           JWT_SECRET="${{ steps.keyvault-secrets.outputs.jwt-secret }}"
-          FIREBASE_SERVICE_ACCOUNT="${{ steps.keyvault-secrets.outputs.firebase-service-account }}"
+          AZURE_STORAGE_CONNECTION_STRING="${{ steps.keyvault-secrets.outputs.azure-storage-connection-string }}"
           
           # Default empty values to prevent malformed env vars
           GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-CONFIGURE_ME}"
@@ -285,7 +285,7 @@ jobs:
                 "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
                 "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
                 "JWT_SECRET=$JWT_SECRET" \
-                "FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT" \
+                "AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING" \
                 "NODE_ENV=production" \
               --output none
           else
@@ -304,7 +304,7 @@ jobs:
                 "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
                 "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
                 "JWT_SECRET=$JWT_SECRET" \
-                "FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT" \
+                "AZURE_STORAGE_CONNECTION_STRING=$AZURE_STORAGE_CONNECTION_STRING" \
                 "NODE_ENV=production" \
               --min-replicas 1 \
               --max-replicas 5 \
