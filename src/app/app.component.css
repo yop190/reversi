@@ -123,10 +123,44 @@ main {
 
 .mode-btn.multiplayer {
   background: linear-gradient(135deg, #8b5cf6, #a855f7) !important;
+  position: relative;
 }
 
 .mode-btn.multiplayer:hover {
   box-shadow: 0 10px 30px -5px rgba(139, 92, 246, 0.4);
+}
+
+.mode-btn .lock-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 16px !important;
+  width: 16px !important;
+  height: 16px !important;
+  opacity: 0.7;
+  margin: 0 !important;
+}
+
+.mode-btn.leaderboard-btn {
+  padding: 1rem !important;
+  flex-direction: row;
+  gap: 0.5rem;
+}
+
+.mode-btn.leaderboard-btn mat-icon {
+  margin-bottom: 0;
+  font-size: 24px;
+  width: 24px;
+  height: 24px;
+}
+
+.mode-btn.leaderboard-btn span {
+  font-size: 1rem;
+}
+
+/* Mode selection relative positioning for user menu */
+.mode-selection {
+  position: relative;
 }
 
 /* Connection Status */

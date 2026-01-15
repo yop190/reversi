@@ -1,0 +1,56 @@
+# Gitleaks Configuration
+# https://github.com/gitleaks/gitleaks
+
+title = "Reversi Secret Scanning"
+
+[extend]
+# Use default rules
+useDefault = true
+
+# Additional rules for this project
+[[rules]]
+id = "google-client-id"
+description = "Google OAuth Client ID"
+regex = '''[0-9]+-[a-z0-9]+\.apps\.googleusercontent\.com'''
+secretGroup = 0
+entropy = 0
+tags = ["google", "oauth"]
+
+[[rules]]
+id = "jwt-secret"
+description = "JWT Secret Key"
+regex = '''(?i)(jwt[_-]?secret|jwt[_-]?key)[\s]*[=:]+[\s]*['"]?[a-zA-Z0-9+/=]{32,}['"]?'''
+secretGroup = 0
+tags = ["jwt", "secret"]
+
+[[rules]]
+id = "firebase-key"
+description = "Firebase Private Key"
+regex = '''-----BEGIN (RSA |EC )?PRIVATE KEY-----'''
+secretGroup = 0
+tags = ["firebase", "private-key"]
+
+# Allowlist - files/patterns to ignore
+[allowlist]
+description = "Allowlist for false positives"
+
+# Allow test files and documentation
+paths = [
+  '''\.md$''',
+  '''\.txt$''',
+  '''package-lock\.json$''',
+  '''\.spec\.ts$''',
+  '''test/''',
+  '''__tests__/''',
+]
+
+# Allow specific patterns that are not secrets
+regexes = [
+  '''example\.com''',
+  '''YOUR_.*_HERE''',
+  '''<your-.*>''',
+  '''localhost:\d+''',
+]
+
+# Allow specific commits (if needed)
+commits = []

@@ -7,6 +7,9 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { Server, Socket } from 'socket.io';
 import {
   ClientEvents,
@@ -24,19 +27,29 @@ import {
 import { RoomService } from './room.service';
 import { GameService } from './game.service';
 import { PlayerService } from './player.service';
+import { ScoreService } from '../score/score.service';
+
+interface AuthenticatedSocket extends Socket {
+  user?: {
+    id: string;
+    googleId: string;
+    email: string;
+    displayName: string;
+  };
+}
 
 @WebSocketGateway({
   cors: {
     origin: (origin: string | undefined, callback: (err: Error | null, allowed?: boolean) => void) => {
       // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
-      
+
       const allowedPatterns = [
         /^http:\/\/localhost(:\d+)?$/, // localhost with any port
         /^https:\/\/reversi\.lebrere\.fr$/, // custom domain
         /^https:\/\/.*\.azurecontainerapps\.io$/, // any Azure Container Apps
       ];
-      
+
       const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
       callback(null, isAllowed);
     },
@@ -48,48 +61,130 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
+  private readonly logger = new Logger(GameGateway.name);
+  private readonly authEnabled: boolean;
+
   constructor(
     private roomService: RoomService,
     private gameService: GameService,
-    private playerService: PlayerService
-  ) {}
+    private playerService: PlayerService,
+    private jwtService: JwtService,
+    private scoreService: ScoreService,
+    private configService: ConfigService,
+  ) {
+    // Check if Google OAuth is configured
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    this.authEnabled = !!googleClientId && googleClientId !== 'not-configured' && googleClientId !== 'CONFIGURE_ME';
+    
+    if (!this.authEnabled) {
+      this.logger.warn('⚠️ Authentication is DISABLED - Google OAuth not configured');
+    } else {
+      this.logger.log('✅ Authentication is ENABLED');
+    }
+  }
+
+  /**
+   * Validate JWT token from socket handshake
+   */
+  private validateToken(client: Socket): { id: string; googleId: string; email: string; displayName: string } | null {
+    try {
+      // Extract token from various sources
+      const token = 
+        client.handshake.auth?.token ||
+        client.handshake.query?.token ||
+        client.handshake.headers?.authorization?.replace('Bearer ', '');
+
+      if (!token) {
+        return null;
+      }
+
+      const payload = this.jwtService.verify(token as string);
+      return {
+        id: payload.sub,
+        googleId: payload.googleId,
+        email: payload.email,
+        displayName: payload.displayName,
+      };
+    } catch (error) {
+      this.logger.warn(`Token validation failed: ${error}`);
+      return null;
+    }
+  }
 
   /**
    * Handle new connection
    */
-  handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
-    const player = this.playerService.createPlayer(client.id);
+  handleConnection(client: AuthenticatedSocket) {
+    this.logger.log(`Client attempting connection: ${client.id}`);
+
+    // Validate authentication (if enabled)
+    const user = this.validateToken(client);
     
+    if (this.authEnabled && !user) {
+      this.logger.warn(`Unauthenticated connection rejected: ${client.id}`);
+      client.emit(ServerEvents.Error, {
+        message: 'Authentication required. Please sign in with Google.',
+        code: 'AUTH_REQUIRED',
+      });
+      client.disconnect(true);
+      return;
+    }
+
+    // If auth is disabled, create anonymous user
+    if (!user && !this.authEnabled) {
+      const anonymousId = `anon-${client.id.substring(0, 8)}`;
+      client.user = {
+        id: anonymousId,
+        googleId: '',
+        email: '',
+        displayName: `Player-${anonymousId.substring(5, 10)}`,
+      };
+      this.logger.log(`Anonymous user connected (auth disabled): ${client.user.displayName}`);
+    } else if (user) {
+      // Attach authenticated user to socket
+      client.user = user;
+      this.logger.log(`Authenticated user connected: ${user.displayName} (${user.email})`);
+    }
+
+    // Create player with user info
+    const player = this.playerService.createPlayer(
+      client.id, 
+      client.user?.displayName || 'Anonymous', 
+      client.user?.id
+    );
+
     client.emit(ServerEvents.Connected, {
       playerId: player.id,
       username: player.username,
+      userId: client.user?.id || '',
+      email: client.user?.email || '',
+      authEnabled: this.authEnabled,
     });
-    
+
     this.broadcastLobbyUpdate();
   }
 
   /**
    * Handle disconnection
    */
-  handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
-    
+  handleDisconnect(client: AuthenticatedSocket) {
+    this.logger.log(`Client disconnected: ${client.id}`);
+
     const room = this.roomService.getPlayerRoom(client.id);
     const { wasPlayer } = this.roomService.leaveRoom(client.id);
     this.playerService.removePlayer(client.id);
-    
+
     if (room && wasPlayer) {
       // Notify room that a player left
       this.server.to(room.id).emit(ServerEvents.PlayerLeft, {
         playerId: client.id,
         message: 'A player has left the game',
       });
-      
+
       // Broadcast updated room state
       this.broadcastRoomState(room.id);
     }
-    
+
     this.broadcastLobbyUpdate();
   }
 
@@ -107,7 +202,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         playerId: player.id,
         username: player.username,
       });
-      
+
       // Update room if player is in one
       const room = this.roomService.getPlayerRoom(client.id);
       if (room) {
@@ -141,16 +236,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const room = this.roomService.createRoom(payload.roomName, player);
     const result = this.roomService.joinRoom(room.id, player);
-    
+
     if (result.success && result.room) {
       client.join(room.id);
-      
+
       const response: RoomJoinedPayload = {
         room: this.roomService.toRoomInfo(result.room),
         yourColor: result.color || null,
         isSpectator: result.isSpectator,
       };
-      
+
       client.emit(ServerEvents.RoomJoined, response);
       this.broadcastLobbyUpdate();
     }
@@ -171,7 +266,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const result = this.roomService.joinRoom(payload.roomId, player);
-    
+
     if (!result.success) {
       this.sendError(client, result.error || 'Failed to join room', 'JOIN_FAILED');
       return;
@@ -179,21 +274,21 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (result.room) {
       client.join(result.room.id);
-      
+
       const response: RoomJoinedPayload = {
         room: this.roomService.toRoomInfo(result.room),
         yourColor: result.color || null,
         isSpectator: result.isSpectator,
       };
-      
+
       client.emit(ServerEvents.RoomJoined, response);
-      
+
       // Notify others in room
       client.to(result.room.id).emit(ServerEvents.PlayerJoined, {
         player: player,
         isSpectator: result.isSpectator,
       });
-      
+
       // If game just started (2 players), broadcast game state
       if (result.room.players.length === 2 && result.room.gameState) {
         this.server.to(result.room.id).emit(ServerEvents.GameStarted, {
@@ -201,7 +296,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
           players: result.room.players,
         });
       }
-      
+
       this.broadcastLobbyUpdate();
     }
   }
@@ -215,9 +310,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (room) {
       client.leave(room.id);
       const { wasPlayer } = this.roomService.leaveRoom(client.id);
-      
+
       client.emit(ServerEvents.RoomLeft, { success: true });
-      
+
       if (wasPlayer) {
         this.server.to(room.id).emit(ServerEvents.PlayerLeft, {
           playerId: client.id,
@@ -225,7 +320,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
         this.broadcastRoomState(room.id);
       }
-      
+
       this.broadcastLobbyUpdate();
     }
   }
@@ -273,7 +368,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Broadcast updated state
     const updatePayload: GameStateUpdatePayload = {
       gameState: result.newState,
-      message: result.newState.gameOver 
+      message: result.newState.gameOver
         ? `Game Over! ${result.newState.winner === 'draw' ? "It's a draw!" : `${result.newState.winner} wins!`}`
         : undefined,
     };
@@ -281,11 +376,44 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(room.id).emit(ServerEvents.GameStateUpdate, updatePayload);
 
     if (result.newState.gameOver) {
+      // Record game result for scoring
+      this.recordGameScore(room, result.newState);
+
       this.server.to(room.id).emit(ServerEvents.GameOver, {
         winner: result.newState.winner,
         blackScore: result.newState.blackScore,
         whiteScore: result.newState.whiteScore,
       });
+    }
+  }
+
+  /**
+   * Record game result for persistent scoring
+   */
+  private async recordGameScore(room: any, gameState: any) {
+    try {
+      // Get player user IDs from the room
+      const blackPlayer = room.players.find((p: any) => p.color === 'black');
+      const whitePlayer = room.players.find((p: any) => p.color === 'white');
+
+      if (!blackPlayer?.userId || !whitePlayer?.userId) {
+        this.logger.warn('Cannot record score: player IDs not found');
+        return;
+      }
+
+      const winner = gameState.winner as 'black' | 'white' | 'draw';
+
+      await this.scoreService.recordGameResult({
+        winner,
+        blackPlayerId: blackPlayer.userId,
+        whitePlayerId: whitePlayer.userId,
+        blackScore: gameState.blackScore,
+        whiteScore: gameState.whiteScore,
+      });
+
+      this.logger.log(`Game score recorded: ${winner} wins`);
+    } catch (error) {
+      this.logger.error('Failed to record game score:', error);
     }
   }
 
@@ -339,7 +467,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const hint = this.gameService.getHint(room.gameState, playerColor);
-    
+
     const response: HintResponsePayload = { position: hint };
     client.emit(ServerEvents.HintResponse, response);
   }

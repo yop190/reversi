@@ -40,39 +40,39 @@ export interface RoomState {
 export class WebSocketService {
   private socket: Socket | null = null;
   private ngZone = inject(NgZone);
-  
+
   // Server URL - from environment configuration
   private readonly serverUrl = environment.wsUrl;
-  
+
   // Connection state
   private _connectionState = signal<ConnectionState>({
     connected: false,
     playerId: null,
     username: '',
   });
-  
+
   // Lobby state
   private _lobbyState = signal<LobbyState>({
     rooms: [],
     onlineCount: 0,
   });
-  
+
   // Current room state
   private _roomState = signal<RoomState>({
     room: null,
     yourColor: null,
     isSpectator: false,
   });
-  
+
   // Current game state
   private _gameState = signal<GameState | null>(null);
-  
+
   // Hint position
   private _hint = signal<Position | null>(null);
-  
+
   // Error messages
   private _lastError = signal<string | null>(null);
-  
+
   // Computed states
   readonly connectionState = this._connectionState.asReadonly();
   readonly lobbyState = this._lobbyState.asReadonly();
@@ -80,7 +80,7 @@ export class WebSocketService {
   readonly gameState = this._gameState.asReadonly();
   readonly hint = this._hint.asReadonly();
   readonly lastError = this._lastError.asReadonly();
-  
+
   readonly isConnected = computed(() => this._connectionState().connected);
   readonly isInRoom = computed(() => this._roomState().room !== null);
   readonly isPlayer = computed(() => !this._roomState().isSpectator && this._roomState().yourColor !== null);
@@ -96,27 +96,48 @@ export class WebSocketService {
   });
   readonly waitingForOpponent = computed(() => {
     const roomState = this._roomState();
-    return roomState.room !== null && 
-           roomState.room.players.length < 2 && 
-           !roomState.isSpectator;
+    return roomState.room !== null &&
+      roomState.room.players.length < 2 &&
+      !roomState.isSpectator;
   });
-  
+
   /**
-   * Connect to the game server
+   * Connect to the game server with authentication
    */
-  connect(): void {
+  connect(authToken?: string): void {
     if (this.socket?.connected) {
       return;
     }
-    
+
+    // Get auth token from parameter or localStorage
+    const token = authToken || this.getStoredAuthToken();
+
     this.socket = io(this.serverUrl, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      auth: token ? { token } : undefined,
+      query: token ? { token } : undefined,
     });
-    
+
     this.setupEventListeners();
   }
-  
+
+  /**
+   * Get stored authentication token
+   */
+  private getStoredAuthToken(): string | null {
+    try {
+      const stored = localStorage.getItem('reversi-auth');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.token || null;
+      }
+    } catch {
+      // Ignore errors
+    }
+    return null;
+  }
+
   /**
    * Disconnect from the server
    */
@@ -125,7 +146,7 @@ export class WebSocketService {
       this.socket.disconnect();
       this.socket = null;
     }
-    
+
     this._connectionState.set({
       connected: false,
       playerId: null,
@@ -138,35 +159,35 @@ export class WebSocketService {
     });
     this._gameState.set(null);
   }
-  
+
   /**
    * Set username
    */
   setUsername(username: string): void {
     this.emit(ClientEvents.SetUsername, { username });
   }
-  
+
   /**
    * Get lobby state
    */
   getLobby(): void {
     this.emit(ClientEvents.GetLobby, {});
   }
-  
+
   /**
    * Create a new room
    */
   createRoom(roomName: string): void {
     this.emit(ClientEvents.CreateRoom, { roomName });
   }
-  
+
   /**
    * Join an existing room
    */
   joinRoom(roomId: string): void {
     this.emit(ClientEvents.JoinRoom, { roomId });
   }
-  
+
   /**
    * Leave current room
    */
@@ -180,62 +201,62 @@ export class WebSocketService {
     this._gameState.set(null);
     this._hint.set(null);
   }
-  
+
   /**
    * Make a move
    */
   makeMove(row: number, col: number): void {
     this.emit(ClientEvents.MakeMove, { row, col });
   }
-  
+
   /**
    * Pass turn
    */
   passTurn(): void {
     this.emit(ClientEvents.PassTurn, {});
   }
-  
+
   /**
    * Request a hint
    */
   requestHint(): void {
     this.emit(ClientEvents.RequestHint, {});
   }
-  
+
   /**
    * Restart the game
    */
   restartGame(): void {
     this.emit(ClientEvents.RestartGame, {});
   }
-  
+
   /**
    * Clear hint
    */
   clearHint(): void {
     this._hint.set(null);
   }
-  
+
   /**
    * Clear error
    */
   clearError(): void {
     this._lastError.set(null);
   }
-  
+
   /**
    * Setup all socket event listeners
    */
   private setupEventListeners(): void {
     if (!this.socket) return;
-    
+
     // Connection events
     this.socket.on('connect', () => {
       this.ngZone.run(() => {
         console.log('Connected to server');
       });
     });
-    
+
     this.socket.on('disconnect', () => {
       this.ngZone.run(() => {
         console.log('Disconnected from server');
@@ -245,7 +266,7 @@ export class WebSocketService {
         }));
       });
     });
-    
+
     // Server events
     this.socket.on(ServerEvents.Connected, (data: { playerId: string; username: string }) => {
       this.ngZone.run(() => {
@@ -258,20 +279,20 @@ export class WebSocketService {
         this.getLobby();
       });
     });
-    
+
     this.socket.on(ServerEvents.Error, (error: ErrorPayload) => {
       this.ngZone.run(() => {
         console.error('Server error:', error);
         this._lastError.set(error.message);
       });
     });
-    
+
     this.socket.on(ServerEvents.LobbyUpdate, (lobby: LobbyState) => {
       this.ngZone.run(() => {
         this._lobbyState.set(lobby);
       });
     });
-    
+
     this.socket.on(ServerEvents.RoomJoined, (payload: RoomJoinedPayload) => {
       this.ngZone.run(() => {
         this._roomState.set({
@@ -284,7 +305,7 @@ export class WebSocketService {
         }
       });
     });
-    
+
     this.socket.on(ServerEvents.RoomLeft, () => {
       this.ngZone.run(() => {
         this._roomState.set({
@@ -295,7 +316,7 @@ export class WebSocketService {
         this._gameState.set(null);
       });
     });
-    
+
     this.socket.on(ServerEvents.GameStarted, (data: { gameState: GameState; players: PlayerInfo[] }) => {
       this.ngZone.run(() => {
         this._gameState.set(data.gameState);
@@ -309,7 +330,7 @@ export class WebSocketService {
         }));
       });
     });
-    
+
     this.socket.on(ServerEvents.GameStateUpdate, (payload: GameStateUpdatePayload) => {
       this.ngZone.run(() => {
         if (payload.gameState) {
@@ -318,64 +339,64 @@ export class WebSocketService {
         this._hint.set(null); // Clear hint on state update
       });
     });
-    
+
     this.socket.on(ServerEvents.PlayerJoined, (data: { player: PlayerInfo; isSpectator: boolean }) => {
       this.ngZone.run(() => {
         this._roomState.update(state => {
           if (!state.room) return state;
-          
+
           const updatedRoom = { ...state.room };
           if (data.isSpectator) {
             updatedRoom.spectators = [...updatedRoom.spectators, data.player];
           } else {
             updatedRoom.players = [...updatedRoom.players, data.player];
           }
-          
+
           return { ...state, room: updatedRoom };
         });
       });
     });
-    
+
     this.socket.on(ServerEvents.PlayerLeft, (data: { playerId: string; message: string }) => {
       this.ngZone.run(() => {
         this._roomState.update(state => {
           if (!state.room) return state;
-          
+
           const updatedRoom = { ...state.room };
           updatedRoom.players = updatedRoom.players.filter((p: PlayerInfo) => p.id !== data.playerId);
           updatedRoom.spectators = updatedRoom.spectators.filter((p: PlayerInfo) => p.id !== data.playerId);
-          
+
           // Reset game if a player left
           if (updatedRoom.players.length < 2) {
             updatedRoom.gameState = null;
             this._gameState.set(null);
           }
-          
+
           return { ...state, room: updatedRoom };
         });
       });
     });
-    
+
     this.socket.on(ServerEvents.GameOver, (data: { winner: PlayerColor | 'draw'; blackScore: number; whiteScore: number }) => {
       this.ngZone.run(() => {
         // Game over is handled via gameState update
         console.log('Game over:', data);
       });
     });
-    
+
     this.socket.on(ServerEvents.HintResponse, (payload: HintResponsePayload) => {
       this.ngZone.run(() => {
         this._hint.set(payload.position);
       });
     });
-    
+
     this.socket.on(ServerEvents.TurnPassed, (data: { player: PlayerColor; gameState: GameState }) => {
       this.ngZone.run(() => {
         this._gameState.set(data.gameState);
       });
     });
   }
-  
+
   /**
    * Emit an event to the server
    */

@@ -1,0 +1,365 @@
+# ============================================
+# Reversi - Security Pipeline
+# Comprehensive security gates for CI/CD
+# ============================================
+
+name: Security Gate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ==========================================
+  # Job 1: Dependency Vulnerability Scanning (SCA)
+  # ==========================================
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Run npm audit (Frontend)
+        run: |
+          echo "🔍 Scanning frontend dependencies for vulnerabilities..."
+          npm audit --audit-level=high --json > frontend-audit.json || true
+          
+          # Check for high/critical vulnerabilities
+          HIGH_COUNT=$(cat frontend-audit.json | jq '.metadata.vulnerabilities.high // 0')
+          CRITICAL_COUNT=$(cat frontend-audit.json | jq '.metadata.vulnerabilities.critical // 0')
+          
+          echo "Frontend - High: $HIGH_COUNT, Critical: $CRITICAL_COUNT"
+          
+          if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "❌ SECURITY GATE FAILED: High or Critical vulnerabilities found in frontend"
+            npm audit --audit-level=high
+            exit 1
+          fi
+          
+          echo "✅ Frontend dependency scan passed"
+
+      - name: Install backend dependencies
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run npm audit (Backend)
+        run: |
+          cd backend
+          echo "🔍 Scanning backend dependencies for vulnerabilities..."
+          npm audit --audit-level=high --json > backend-audit.json || true
+          
+          HIGH_COUNT=$(cat backend-audit.json | jq '.metadata.vulnerabilities.high // 0')
+          CRITICAL_COUNT=$(cat backend-audit.json | jq '.metadata.vulnerabilities.critical // 0')
+          
+          echo "Backend - High: $HIGH_COUNT, Critical: $CRITICAL_COUNT"
+          
+          if [ "$CRITICAL_COUNT" -gt 0 ] || [ "$HIGH_COUNT" -gt 0 ]; then
+            echo "❌ SECURITY GATE FAILED: High or Critical vulnerabilities found in backend"
+            npm audit --audit-level=high
+            exit 1
+          fi
+          
+          echo "✅ Backend dependency scan passed"
+
+      - name: Upload audit reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-audit-reports
+          path: |
+            frontend-audit.json
+            backend/backend-audit.json
+
+  # ==========================================
+  # Job 2: Secret Scanning
+  # ==========================================
+  secret-scan:
+    name: Secret Detection
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Gitleaks
+        run: |
+          wget https://github.com/gitleaks/gitleaks/releases/download/v8.18.0/gitleaks_8.18.0_linux_x64.tar.gz
+          tar -xzf gitleaks_8.18.0_linux_x64.tar.gz
+          chmod +x gitleaks
+          sudo mv gitleaks /usr/local/bin/
+
+      - name: Run Gitleaks Secret Scan
+        run: |
+          echo "🔐 Scanning for secrets in codebase..."
+          gitleaks detect --source . --verbose --report-format json --report-path gitleaks-report.json || {
+            echo "❌ SECURITY GATE FAILED: Secrets detected in codebase!"
+            cat gitleaks-report.json
+            exit 1
+          }
+          echo "✅ No secrets detected"
+
+      - name: Upload secret scan report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: secret-scan-report
+          path: gitleaks-report.json
+
+  # ==========================================
+  # Job 3: Static Application Security Testing (SAST)
+  # ==========================================
+  sast-scan:
+    name: Static Security Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install ESLint Security Plugin
+        run: |
+          npm install eslint @eslint/js eslint-plugin-security typescript-eslint --save-dev
+
+      - name: Create ESLint Security Config
+        run: |
+          cat > eslint.security.config.mjs << 'EOF'
+          import security from 'eslint-plugin-security';
+          
+          export default [
+            {
+              files: ['**/*.ts', '**/*.js'],
+              plugins: {
+                security
+              },
+              rules: {
+                'security/detect-object-injection': 'error',
+                'security/detect-non-literal-regexp': 'error',
+                'security/detect-unsafe-regex': 'error',
+                'security/detect-buffer-noassert': 'error',
+                'security/detect-child-process': 'error',
+                'security/detect-disable-mustache-escape': 'error',
+                'security/detect-eval-with-expression': 'error',
+                'security/detect-no-csrf-before-method-override': 'error',
+                'security/detect-non-literal-fs-filename': 'warn',
+                'security/detect-non-literal-require': 'warn',
+                'security/detect-possible-timing-attacks': 'error',
+                'security/detect-pseudoRandomBytes': 'error',
+                'security/detect-new-buffer': 'error'
+              }
+            },
+            {
+              ignores: ['**/node_modules/**', '**/dist/**', '**/*.spec.ts']
+            }
+          ];
+          EOF
+
+      - name: Run SAST Analysis
+        run: |
+          echo "🔍 Running static security analysis..."
+          npx eslint --config eslint.security.config.mjs "src/**/*.ts" "backend/src/**/*.ts" --format json --output-file sast-report.json || {
+            echo "⚠️ SAST issues found, checking severity..."
+            # Check for error-level issues
+            ERRORS=$(cat sast-report.json | jq '[.[] | .errorCount] | add // 0')
+            if [ "$ERRORS" -gt 0 ]; then
+              echo "❌ SECURITY GATE FAILED: Critical security issues found"
+              cat sast-report.json | jq '.[] | select(.errorCount > 0)'
+              exit 1
+            fi
+          }
+          echo "✅ SAST analysis passed"
+
+      - name: Upload SAST report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: sast-report
+          path: sast-report.json
+
+  # ==========================================
+  # Job 4: Container Security Scan
+  # ==========================================
+  container-scan:
+    name: Container Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Frontend Docker image for scanning
+        run: |
+          docker build -t reversi-frontend:scan -f Dockerfile .
+
+      - name: Build Backend Docker image for scanning
+        run: |
+          docker build -t reversi-backend:scan -f backend/Dockerfile .
+
+      - name: Install Trivy
+        run: |
+          wget https://github.com/aquasecurity/trivy/releases/download/v0.48.0/trivy_0.48.0_Linux-64bit.tar.gz
+          tar zxvf trivy_0.48.0_Linux-64bit.tar.gz
+          sudo mv trivy /usr/local/bin/
+
+      - name: Scan Frontend Container
+        run: |
+          echo "🐳 Scanning frontend container for vulnerabilities..."
+          trivy image --severity HIGH,CRITICAL --exit-code 1 --format json -o frontend-container-scan.json reversi-frontend:scan || {
+            echo "❌ SECURITY GATE FAILED: Critical vulnerabilities in frontend container"
+            trivy image --severity HIGH,CRITICAL reversi-frontend:scan
+            exit 1
+          }
+          echo "✅ Frontend container scan passed"
+
+      - name: Scan Backend Container
+        run: |
+          echo "🐳 Scanning backend container for vulnerabilities..."
+          trivy image --severity HIGH,CRITICAL --exit-code 1 --format json -o backend-container-scan.json reversi-backend:scan || {
+            echo "❌ SECURITY GATE FAILED: Critical vulnerabilities in backend container"
+            trivy image --severity HIGH,CRITICAL reversi-backend:scan
+            exit 1
+          }
+          echo "✅ Backend container scan passed"
+
+      - name: Upload container scan reports
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: container-scan-reports
+          path: |
+            frontend-container-scan.json
+            backend-container-scan.json
+
+  # ==========================================
+  # Job 5: Infrastructure Security Check
+  # ==========================================
+  infra-security:
+    name: Infrastructure Security Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check Dockerfile security
+        run: |
+          echo "🔒 Checking Dockerfile security best practices..."
+          
+          # Check for non-root user
+          if ! grep -q "USER" Dockerfile || grep -q "USER root" Dockerfile; then
+            echo "⚠️ Warning: Frontend Dockerfile should run as non-root user"
+          fi
+          
+          if ! grep -q "USER" backend/Dockerfile || grep -q "USER root" backend/Dockerfile; then
+            echo "⚠️ Warning: Backend Dockerfile should run as non-root user"
+          fi
+          
+          # Check for HEALTHCHECK
+          if ! grep -q "HEALTHCHECK" Dockerfile; then
+            echo "⚠️ Warning: Frontend Dockerfile should have HEALTHCHECK"
+          fi
+          
+          echo "✅ Infrastructure security check completed"
+
+      - name: Verify no secrets in code
+        run: |
+          echo "🔐 Checking for hardcoded secrets patterns..."
+          
+          # Check for common secret patterns
+          PATTERNS=(
+            "password\s*="
+            "api_key\s*="
+            "secret\s*="
+            "token\s*="
+            "client_secret\s*="
+            "private_key"
+          )
+          
+          FOUND_SECRETS=0
+          for pattern in "${PATTERNS[@]}"; do
+            # Exclude node_modules, dist, and common false positives
+            MATCHES=$(grep -rniE "$pattern" --include="*.ts" --include="*.js" --include="*.json" \
+              --exclude-dir=node_modules --exclude-dir=dist \
+              --exclude="package*.json" --exclude="*.d.ts" . 2>/dev/null || true)
+            
+            if [ -n "$MATCHES" ]; then
+              echo "⚠️ Potential secret pattern found: $pattern"
+              echo "$MATCHES"
+              FOUND_SECRETS=1
+            fi
+          done
+          
+          if [ "$FOUND_SECRETS" -eq 1 ]; then
+            echo "⚠️ Review the above matches for actual secrets"
+          else
+            echo "✅ No obvious secret patterns found"
+          fi
+
+  # ==========================================
+  # Job 6: Security Gate Summary
+  # ==========================================
+  security-gate:
+    name: Security Gate
+    runs-on: ubuntu-latest
+    needs: [dependency-scan, secret-scan, sast-scan, container-scan, infra-security]
+    if: always()
+    
+    steps:
+      - name: Check Security Gate Status
+        run: |
+          echo "📊 Security Gate Summary"
+          echo "========================"
+          
+          # Check all job statuses
+          DEPS_STATUS="${{ needs.dependency-scan.result }}"
+          SECRET_STATUS="${{ needs.secret-scan.result }}"
+          SAST_STATUS="${{ needs.sast-scan.result }}"
+          CONTAINER_STATUS="${{ needs.container-scan.result }}"
+          INFRA_STATUS="${{ needs.infra-security.result }}"
+          
+          echo "Dependency Scan: $DEPS_STATUS"
+          echo "Secret Detection: $SECRET_STATUS"
+          echo "SAST Analysis: $SAST_STATUS"
+          echo "Container Scan: $CONTAINER_STATUS"
+          echo "Infrastructure Check: $INFRA_STATUS"
+          
+          # Fail if any critical job failed
+          if [ "$DEPS_STATUS" != "success" ] || \
+             [ "$SECRET_STATUS" != "success" ] || \
+             [ "$SAST_STATUS" != "success" ] || \
+             [ "$CONTAINER_STATUS" != "success" ]; then
+            echo ""
+            echo "❌ SECURITY GATE FAILED"
+            echo "Deployment is BLOCKED until security issues are resolved."
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ SECURITY GATE PASSED"
+          echo "Deployment is ALLOWED to proceed."

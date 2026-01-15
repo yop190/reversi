@@ -6,7 +6,8 @@
     "start": "ng serve",
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "extract-i18n": "ng extract-i18n"
   },
   "private": true,
   "dependencies": {
@@ -16,6 +17,7 @@
     "@angular/compiler": "^19.2.18",
     "@angular/core": "^19.2.18",
     "@angular/forms": "^19.2.18",
+    "@angular/localize": "^19.2.18",
     "@angular/material": "^19.2.19",
     "@angular/platform-browser": "^19.2.18",
     "@angular/platform-browser-dynamic": "^19.2.18",

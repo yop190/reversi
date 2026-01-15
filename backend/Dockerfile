@@ -32,7 +32,7 @@ WORKDIR /app
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nestjs -u 1001
+  adduser -S nestjs -u 1001
 
 # Copy built application and dependencies
 # Note: rootDir is ".." so dist includes backend/src structure

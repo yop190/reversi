@@ -2,6 +2,9 @@
  * App Component
  * Modern Reversi Application with Angular Material & Tailwind
  * Supports both single-player (vs AI) and multiplayer modes
+ * 
+ * Security: Requires Google OAuth 2.0 authentication for multiplayer
+ * Localization: Supports EN, FR, NL, DA
  */
 
 import { Component, inject, signal, ViewChild, HostListener, OnInit, computed } from '@angular/core';
@@ -19,12 +22,17 @@ import { StatusBarComponent } from './components/status-bar/status-bar.component
 import { AboutDialogComponent } from './components/about-dialog/about-dialog.component';
 import { LobbyComponent } from './components/lobby/lobby.component';
 import { GameRoomComponent } from './components/game-room/game-room.component';
+import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
+import { LoginComponent } from './components/login/login.component';
+import { LanguageSelectorComponent } from './components/language-selector/language-selector.component';
 import { GameEngineService } from './services/game-engine.service';
 import { GameStateService } from './services/game-state.service';
 import { WebSocketService } from './services/websocket.service';
+import { AuthService } from './services/auth.service';
+import { I18nService } from './services/i18n.service';
 import { SkillLevel } from './models/game.types';
 
-type GameMode = 'menu' | 'single-player' | 'multiplayer';
+type GameMode = 'menu' | 'single-player' | 'multiplayer' | 'leaderboard' | 'login';
 
 @Component({
   selector: 'app-root',
@@ -43,7 +51,10 @@ type GameMode = 'menu' | 'single-player' | 'multiplayer';
     StatusBarComponent,
     AboutDialogComponent,
     LobbyComponent,
-    GameRoomComponent
+    GameRoomComponent,
+    LeaderboardComponent,
+    LoginComponent,
+    LanguageSelectorComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
@@ -52,6 +63,8 @@ export class AppComponent implements OnInit {
   private gameEngine = inject(GameEngineService);
   protected gameState = inject(GameStateService);
   protected ws = inject(WebSocketService);
+  protected auth = inject(AuthService);
+  protected i18n = inject(I18nService);
   private snackBar = inject(MatSnackBar);
 
   @ViewChild(BoardComponent) boardComponent!: BoardComponent;
@@ -64,10 +77,20 @@ export class AppComponent implements OnInit {
   
   // Computed state for multiplayer
   readonly isInRoom = computed(() => this.ws.isInRoom());
+  readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
+  readonly currentUser = computed(() => this.auth.user());
 
   ngOnInit(): void {
-    // Connect to server on startup for multiplayer support
-    this.ws.connect();
+    // Initialize Google Sign-In
+    this.auth.initializeGoogleSignIn();
+    
+    // Connect to server on startup for multiplayer support (with auth token if available)
+    const token = this.auth.getToken();
+    if (token) {
+      this.ws.connect(token);
+    } else {
+      this.ws.connect();
+    }
   }
 
   @HostListener('window:resize')
@@ -82,7 +105,49 @@ export class AppComponent implements OnInit {
   }
 
   startMultiplayer(): void {
+    // Require authentication for multiplayer
+    if (!this.isAuthenticated()) {
+      this.gameMode.set('login');
+      this.snackBar.open(this.i18n.t('auth.signInRequired'), 'OK', {
+        duration: 3000
+      });
+      return;
+    }
+    
+    // Reconnect with auth token
+    const token = this.auth.getToken();
+    if (token) {
+      this.ws.connect(token);
+    }
     this.gameMode.set('multiplayer');
+  }
+
+  showLeaderboard(): void {
+    this.gameMode.set('leaderboard');
+  }
+
+  showLogin(): void {
+    this.gameMode.set('login');
+  }
+
+  onLoginSuccess(): void {
+    // Reconnect WebSocket with auth token
+    const token = this.auth.getToken();
+    if (token) {
+      this.ws.connect(token);
+    }
+    this.gameMode.set('menu');
+    this.snackBar.open(this.i18n.t('auth.signedIn'), 'OK', {
+      duration: 2000
+    });
+  }
+
+  logout(): void {
+    this.auth.signOut();
+    this.goToMenu();
+    this.snackBar.open(this.i18n.t('auth.signedOut'), 'OK', {
+      duration: 2000
+    });
   }
 
   goToMenu(): void {

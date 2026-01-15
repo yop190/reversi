@@ -1,7 +1,7 @@
 {
   "name": "reversi-backend",
   "version": "1.0.0",
-  "description": "Multiplayer Reversi game backend",
+  "description": "Multiplayer Reversi game backend with authentication",
   "main": "dist/backend/src/main.js",
   "scripts": {
     "build": "tsc",
@@ -13,11 +13,19 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/firestore": "^7.11.0",
     "@nestjs/common": "^11.1.11",
+    "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^11.1.11",
+    "@nestjs/jwt": "^11.0.0",
+    "@nestjs/passport": "^11.0.0",
     "@nestjs/platform-express": "^11.1.11",
     "@nestjs/platform-socket.io": "^11.1.11",
     "@nestjs/websockets": "^11.1.11",
+    "google-auth-library": "^9.15.1",
+    "passport": "^0.7.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-jwt": "^4.0.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "socket.io": "^4.8.3",
@@ -26,6 +34,8 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.7",
+    "@types/passport-google-oauth20": "^2.0.16",
+    "@types/passport-jwt": "^4.0.1",
     "@types/uuid": "^11.0.0",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

@@ -1,20 +1,68 @@
 <!-- 
   Modern Reversi Application Layout
   Supports both single-player and multiplayer modes
+  Requires authentication for multiplayer
 -->
 <div class="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
   
+  <!-- MODE: Login -->
+  @if (gameMode() === 'login') {
+    <app-login 
+      (loginSuccess)="onLoginSuccess()"
+      (back)="goToMenu()">
+    </app-login>
+  }
+
+  <!-- MODE: Leaderboard -->
+  @if (gameMode() === 'leaderboard') {
+    <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+      <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div class="flex items-center">
+          <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <span class="ml-2 text-white font-medium">{{ i18n.translate('leaderboard') }}</span>
+        </div>
+        <app-language-selector></app-language-selector>
+      </div>
+    </header>
+    <app-leaderboard></app-leaderboard>
+  }
+
   <!-- MODE: Main Menu -->
   @if (gameMode() === 'menu') {
     <div class="flex-1 flex items-center justify-center p-4">
       <div class="mode-selection glass-card text-center">
+        <!-- User Info or Sign In -->
+        <div class="absolute top-4 right-4 flex items-center gap-2">
+          <app-language-selector></app-language-selector>
+          @if (isAuthenticated()) {
+            <div class="flex items-center gap-2">
+              @if (currentUser()?.photoUrl) {
+                <img [src]="currentUser()?.photoUrl" 
+                     alt="User avatar" 
+                     class="w-8 h-8 rounded-full">
+              }
+              <span class="text-white text-sm hidden sm:inline">{{ currentUser()?.displayName }}</span>
+              <button mat-icon-button (click)="logout()" matTooltip="Sign Out">
+                <mat-icon>logout</mat-icon>
+              </button>
+            </div>
+          } @else {
+            <button mat-button color="primary" (click)="showLogin()">
+              <mat-icon>login</mat-icon>
+              <span class="ml-1">{{ i18n.translate('signIn') }}</span>
+            </button>
+          }
+        </div>
+
         <!-- Logo -->
         <div class="logo-container">
           <div class="logo-icon">
             <span class="material-symbols-outlined">grid_on</span>
           </div>
-          <h1 class="text-3xl font-bold text-white mt-4">Reversi</h1>
-          <p class="text-slate-400 mt-2">Classic Strategy Game</p>
+          <h1 class="text-3xl font-bold text-white mt-4">{{ i18n.translate('appTitle') }}</h1>
+          <p class="text-slate-400 mt-2">{{ i18n.translate('appSubtitle') }}</p>
         </div>
         
         <!-- Mode Selection Buttons -->
@@ -24,8 +72,8 @@
                   class="mode-btn"
                   (click)="startSinglePlayer()">
             <mat-icon>person</mat-icon>
-            <span>Single Player</span>
-            <small>Play against AI</small>
+            <span>{{ i18n.translate('singlePlayer') }}</span>
+            <small>{{ i18n.translate('playVsComputer') }}</small>
           </button>
           
           <button mat-raised-button 
@@ -33,8 +81,19 @@
                   class="mode-btn multiplayer"
                   (click)="startMultiplayer()">
             <mat-icon>groups</mat-icon>
-            <span>Multiplayer</span>
-            <small>Play online</small>
+            <span>{{ i18n.translate('multiplayer') }}</span>
+            <small>{{ i18n.translate('playOnline') }}</small>
+            @if (!isAuthenticated()) {
+              <mat-icon class="lock-icon">lock</mat-icon>
+            }
+          </button>
+          
+          <button mat-stroked-button 
+                  color="primary" 
+                  class="mode-btn leaderboard-btn"
+                  (click)="showLeaderboard()">
+            <mat-icon>leaderboard</mat-icon>
+            <span>{{ i18n.translate('leaderboard') }}</span>
           </button>
         </div>
         
@@ -43,12 +102,12 @@
           @if (ws.isConnected()) {
             <span class="status online">
               <span class="dot"></span>
-              Connected · {{ ws.lobbyState().onlineCount }} online
+              {{ i18n.translate('connected') }} · {{ ws.lobbyState().onlineCount }} {{ i18n.translate('onlinePlayers') }}
             </span>
           } @else {
             <span class="status offline">
               <span class="dot"></span>
-              Connecting...
+              {{ i18n.translate('connecting') }}...
             </span>
           }
         </div>
@@ -60,11 +119,21 @@
   @if (gameMode() === 'multiplayer') {
     <!-- Back to menu button -->
     <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
-      <div class="max-w-6xl mx-auto px-4 h-14 flex items-center">
-        <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
-          <mat-icon>arrow_back</mat-icon>
-        </button>
-        <span class="ml-2 text-white font-medium">Multiplayer Reversi</span>
+      <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div class="flex items-center">
+          <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <span class="ml-2 text-white font-medium">{{ i18n.translate('multiplayer') }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <app-language-selector></app-language-selector>
+          @if (currentUser()?.photoUrl) {
+            <img [src]="currentUser()?.photoUrl" 
+                 alt="User avatar" 
+                 class="w-8 h-8 rounded-full">
+          }
+        </div>
       </div>
     </header>
     
@@ -91,14 +160,18 @@
               <span class="material-symbols-outlined text-white text-xl">grid_on</span>
             </div>
             <div class="hidden sm:block">
-              <h1 class="text-xl font-semibold text-white tracking-tight">Reversi</h1>
-              <p class="text-xs text-slate-400">Single Player</p>
+              <h1 class="text-xl font-semibold text-white tracking-tight">{{ i18n.translate('appTitle') }}</h1>
+              <p class="text-xs text-slate-400">{{ i18n.translate('singlePlayer') }}</p>
             </div>
           </div>
 
-          <!-- Menu Component (handles game controls and settings) -->
-          <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
-            (skillChange)="onSkillChange($event)"></app-menu>
+          <!-- Right side: Language selector and menu -->
+          <div class="flex items-center gap-2">
+            <app-language-selector></app-language-selector>
+            <!-- Menu Component (handles game controls and settings) -->
+            <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
+              (skillChange)="onSkillChange($event)"></app-menu>
+          </div>
         </div>
       </div>
     </header>
