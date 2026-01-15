@@ -9,6 +9,10 @@
     "start:dev": "ts-node -r tsconfig-paths/register src/main.ts",
     "start:watch": "nodemon --exec ts-node -r tsconfig-paths/register src/main.ts"
   },
+  "overrides": {
+    "cross-spawn": "^7.0.5",
+    "glob": "^10.5.0"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
