@@ -34,6 +34,9 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
   adduser -S nestjs -u 1001
 
+# Update npm to fix cross-spawn and glob vulnerabilities in npm itself
+RUN npm install -g npm@latest && npm cache clean --force
+
 # Copy package files for production install
 COPY backend/package*.json ./
 
