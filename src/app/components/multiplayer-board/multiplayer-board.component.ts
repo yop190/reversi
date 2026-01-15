@@ -3,9 +3,10 @@
  * Game board for multiplayer with server-synced state
  */
 
-import { Component, Input, Output, EventEmitter, computed, signal } from '@angular/core';
+import { Component, Input, Output, EventEmitter, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GameState, CellState, PlayerColor, Position, BOARD_SIZE } from '@shared/game.types';
+import { SoundService } from '../../services/sound.service';
 
 @Component({
   selector: 'app-multiplayer-board',
@@ -252,6 +253,8 @@ import { GameState, CellState, PlayerColor, Position, BOARD_SIZE } from '@shared
   `],
 })
 export class MultiplayerBoardComponent {
+  private sound = inject(SoundService);
+  
   @Input({ required: true }) gameState!: GameState;
   @Input() yourColor: PlayerColor | null = null;
   @Input() isSpectator = false;
@@ -304,6 +307,7 @@ export class MultiplayerBoardComponent {
   
   onTileClick(row: number, col: number): void {
     if (this.canClick(row, col)) {
+      this.sound.play('move');
       this.move.emit({ row, col });
     }
   }

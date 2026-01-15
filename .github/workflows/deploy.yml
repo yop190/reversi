@@ -264,14 +264,24 @@ jobs:
           ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "username" -o tsv)
           ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "passwords[0].value" -o tsv)
           
-          # Prepare environment variables with secrets from Key Vault (use CONFIGURE_ME for unconfigured)
+          # Fetch environment variables from Key Vault
           GOOGLE_CLIENT_ID="${{ steps.keyvault-secrets.outputs.google-client-id }}"
           GOOGLE_CLIENT_SECRET="${{ steps.keyvault-secrets.outputs.google-client-secret }}"
           JWT_SECRET="${{ steps.keyvault-secrets.outputs.jwt-secret }}"
           AZURE_STORAGE_CONNECTION_STRING="${{ steps.keyvault-secrets.outputs.azure-storage-connection-string }}"
           
-          # Default empty values to prevent malformed env vars
-          GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-CONFIGURE_ME}"
+          # Validate required secrets are present
+          if [ -z "$GOOGLE_CLIENT_ID" ]; then
+            echo "❌ ERROR: GOOGLE_CLIENT_ID not found in Key Vault"
+            exit 1
+          fi
+          
+          if [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+            echo "❌ ERROR: GOOGLE_CLIENT_SECRET not found in Key Vault"
+            exit 1
+          fi
+          
+          # Use default JWT secret if not configured
           JWT_SECRET="${JWT_SECRET:-reversi-jwt-secret-change-in-production}"
           
           # Check if Backend Container App exists
