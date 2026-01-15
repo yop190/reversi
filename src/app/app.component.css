@@ -88,14 +88,17 @@ main {
 }
 
 .mode-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
   padding: 1.5rem !important;
   height: auto !important;
+  min-height: 100px !important;
   border-radius: 1rem !important;
   transition: transform 0.2s, box-shadow 0.2s !important;
+  white-space: normal !important;
+  line-height: 1.4 !important;
 }
 
 .mode-btn:hover {
@@ -107,18 +110,34 @@ main {
   width: 32px;
   height: 32px;
   margin-bottom: 0.5rem;
+  flex-shrink: 0;
 }
 
 .mode-btn span {
+  display: block !important;
   font-size: 1.125rem;
   font-weight: 600;
+  text-align: center;
+  width: 100%;
 }
 
 .mode-btn small {
+  display: block !important;
   font-size: 0.75rem;
   opacity: 0.8;
   font-weight: 400;
   margin-top: 0.25rem;
+  text-align: center;
+  width: 100%;
+}
+
+.mode-btn small {
+  display: block !important;
+  font-size: 0.75rem;
+  opacity: 0.8;
+  font-weight: 400;
+  margin-top: 0.25rem;
+  text-align: center;
 }
 
 .mode-btn.multiplayer {

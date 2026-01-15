@@ -167,6 +167,13 @@
 
           <!-- Right side: Sound toggle, Language selector and menu -->
           <div class="flex items-center gap-2">
+            <!-- Music Toggle -->
+            <button mat-icon-button 
+                    (click)="sound.toggleMusic()"
+                    [matTooltip]="sound.musicEnabled() ? 'Stop music' : 'Play music'"
+                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+              <mat-icon>{{ sound.musicEnabled() ? 'music_note' : 'music_off' }}</mat-icon>
+            </button>
             <!-- Sound Toggle -->
             <button mat-icon-button 
                     (click)="sound.toggleSound()"
