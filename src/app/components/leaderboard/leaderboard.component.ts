@@ -39,14 +39,17 @@ interface LeaderboardEntry {
     MatDividerModule,
   ],
   template: `
-    <mat-card class="leaderboard-card">
-      <mat-card-header>
-        <mat-icon mat-card-avatar>leaderboard</mat-icon>
-        <mat-card-title>{{ i18n.translate('leaderboard') }}</mat-card-title>
-        <mat-card-subtitle>{{ i18n.translate('totalGames') }}: {{ totalGames() }}</mat-card-subtitle>
-      </mat-card-header>
+    <div class="leaderboard-container">
+      <mat-card class="leaderboard-card glass-card">
+        <mat-card-header>
+          <div class="trophy-container" mat-card-avatar>
+            <span class="trophy-icon">🏆</span>
+          </div>
+          <mat-card-title>{{ i18n.translate('leaderboard') }}</mat-card-title>
+          <mat-card-subtitle>{{ i18n.translate('totalGames') }}: {{ totalGames() }}</mat-card-subtitle>
+        </mat-card-header>
 
-      <mat-card-content>
+        <mat-card-content>
         @if (isLoading()) {
           <div class="loading-container">
             <mat-spinner diameter="40"></mat-spinner>
@@ -122,11 +125,50 @@ interface LeaderboardEntry {
         </button>
       </mat-card-actions>
     </mat-card>
+    </div>
   `,
   styles: [`
+    .leaderboard-container {
+      min-height: calc(100vh - 56px);
+      padding: 1rem;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e293b 100%);
+    }
+
     .leaderboard-card {
       max-width: 500px;
-      margin: 1rem auto;
+      margin: 0 auto;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 100%) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      color: white;
+    }
+
+    .leaderboard-card mat-card-title,
+    .leaderboard-card mat-card-subtitle {
+      color: white !important;
+    }
+
+    .leaderboard-card mat-card-subtitle {
+      opacity: 0.7;
+    }
+
+    .trophy-container {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      border-radius: 50%;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+    }
+
+    .trophy-icon {
+      font-size: 24px;
     }
 
     .loading-container,
@@ -139,20 +181,22 @@ interface LeaderboardEntry {
       padding: 2rem;
       text-align: center;
       gap: 1rem;
+      color: rgba(255, 255, 255, 0.7);
     }
 
     .empty-state mat-icon {
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: #666;
+      color: rgba(255, 255, 255, 0.5);
     }
 
     .my-rank-section {
       padding: 1rem;
-      background: rgba(63, 81, 181, 0.1);
+      background: rgba(99, 102, 241, 0.2);
       border-radius: 8px;
       margin-bottom: 1rem;
+      border: 1px solid rgba(99, 102, 241, 0.3);
     }
 
     .my-rank {
@@ -160,16 +204,23 @@ interface LeaderboardEntry {
       align-items: center;
       gap: 0.5rem;
       font-weight: 500;
+      color: white;
     }
 
     .rank-value {
       font-size: 1.25rem;
-      color: #3f51b5;
+      color: #a5b4fc;
     }
 
     .leaderboard-list {
       max-height: 400px;
       overflow-y: auto;
+    }
+
+    .leaderboard-list mat-list-item {
+      color: white;
+      border-radius: 8px;
+      margin-bottom: 4px;
     }
 
     .rank-badge {
@@ -179,19 +230,20 @@ interface LeaderboardEntry {
       width: 32px;
       height: 32px;
       border-radius: 50%;
-      background: #e0e0e0;
+      background: rgba(255, 255, 255, 0.1);
       font-weight: bold;
       font-size: 14px;
+      color: white;
     }
 
     .rank-badge.gold {
       background: linear-gradient(135deg, #ffd700, #ffb300);
-      color: white;
+      color: #1e293b;
     }
 
     .rank-badge.silver {
       background: linear-gradient(135deg, #c0c0c0, #a0a0a0);
-      color: white;
+      color: #1e293b;
     }
 
     .rank-badge.bronze {
@@ -210,7 +262,7 @@ interface LeaderboardEntry {
       display: flex;
       gap: 1rem;
       font-size: 0.85rem;
-      color: #666;
+      color: rgba(255, 255, 255, 0.6);
     }
 
     .stat {
@@ -227,16 +279,21 @@ interface LeaderboardEntry {
 
     .score {
       font-weight: 600;
-      color: #3f51b5;
+      color: #a5b4fc;
     }
 
     .current-user {
-      background: rgba(63, 81, 181, 0.08);
+      background: rgba(99, 102, 241, 0.15) !important;
       border-radius: 8px;
     }
 
     mat-card-actions {
       padding: 8px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    mat-card-actions button {
+      color: rgba(255, 255, 255, 0.8);
     }
   `],
 })

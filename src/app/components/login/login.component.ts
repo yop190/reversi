@@ -109,7 +109,7 @@ import { I18nService } from '../../services/i18n.service';
       justify-content: center;
       min-height: 100vh;
       padding: 2rem;
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e293b 100%);
     }
 
     .login-card {
@@ -117,6 +117,23 @@ import { I18nService } from '../../services/i18n.service';
       width: 100%;
       text-align: center;
       position: relative;
+      background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        rgba(255, 255, 255, 0.05) 100%) !important;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      color: white;
+    }
+
+    .login-card mat-card-title,
+    .login-card mat-card-subtitle {
+      color: white !important;
+    }
+
+    .login-card mat-card-subtitle {
+      opacity: 0.7;
     }
 
     .header-top {
@@ -126,14 +143,14 @@ import { I18nService } from '../../services/i18n.service';
     }
 
     .back-button {
-      color: #666;
+      color: rgba(255, 255, 255, 0.7);
     }
 
     .app-icon {
       font-size: 48px;
       width: 48px;
       height: 48px;
-      color: #3f51b5;
+      color: #14b8a6;
     }
 
     .login-content {
@@ -153,10 +170,11 @@ import { I18nService } from '../../services/i18n.service';
       font-size: 48px;
       width: 48px;
       height: 48px;
+      color: #f87171;
     }
 
     .sign-in-message {
-      color: #666;
+      color: rgba(255, 255, 255, 0.7);
       margin-bottom: 1rem;
     }
 
@@ -171,6 +189,8 @@ import { I18nService } from '../../services/i18n.service';
       align-items: center;
       gap: 0.5rem;
       padding: 0.5rem 1.5rem;
+      background: white !important;
+      color: #1e293b !important;
     }
 
     .google-icon {
@@ -182,23 +202,25 @@ import { I18nService } from '../../services/i18n.service';
       display: flex;
       justify-content: center;
       padding: 1rem;
-      border-top: 1px solid #eee;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .language-selector {
       display: flex;
       align-items: center;
       gap: 0.25rem;
+      color: rgba(255, 255, 255, 0.7);
     }
 
     .language-selector button {
       min-width: auto;
       padding: 0.25rem 0.5rem;
       font-size: 1.25rem;
+      color: white;
     }
 
     .language-selector button.active {
-      background: rgba(63, 81, 181, 0.1);
+      background: rgba(99, 102, 241, 0.2);
     }
 
     .features-preview {

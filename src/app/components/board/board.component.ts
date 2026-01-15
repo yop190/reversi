@@ -17,22 +17,20 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
   imports: [CommonModule, TileComponent],
   template: `
     <!-- Column labels (A-H) -->
-    <div class="flex justify-center mb-2">
-      <div class="w-6 sm:w-8"></div>
+    <div class="column-labels">
+      <div class="label-spacer"></div>
       @for (col of cols; track col) {
-        <div class="w-10 h-6 sm:w-12 sm:h-8 flex items-center justify-center 
-                    text-xs sm:text-sm font-medium text-slate-400">
+        <div class="column-label">
           {{ getColumnLabel(col) }}
         </div>
       }
     </div>
 
-    <div class="flex">
+    <div class="board-with-labels">
       <!-- Row labels (1-8) -->
-      <div class="flex flex-col">
+      <div class="row-labels">
         @for (row of rows; track row) {
-          <div class="w-6 h-10 sm:w-8 sm:h-12 flex items-center justify-center 
-                      text-xs sm:text-sm font-medium text-slate-400">
+          <div class="row-label">
             {{ row }}
           </div>
         }
@@ -60,6 +58,84 @@ import { CellState, BOARD_SIZE, Position } from '../../models/game.types';
   styles: [`
     :host {
       display: block;
+    }
+
+    /* Column labels row */
+    .column-labels {
+      display: flex;
+      margin-bottom: 0.5rem;
+    }
+
+    .label-spacer {
+      width: 24px;
+    }
+
+    @media (min-width: 640px) {
+      .label-spacer {
+        width: 32px;
+      }
+    }
+
+    .column-label {
+      width: 40px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+
+    @media (min-width: 640px) {
+      .column-label {
+        width: 48px;
+        height: 28px;
+        font-size: 0.875rem;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .column-label {
+        width: 56px;
+        height: 32px;
+      }
+    }
+
+    /* Board with row labels container */
+    .board-with-labels {
+      display: flex;
+    }
+
+    /* Row labels */
+    .row-labels {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .row-label {
+      width: 24px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: #94a3b8;
+    }
+
+    @media (min-width: 640px) {
+      .row-label {
+        width: 32px;
+        height: 48px;
+        font-size: 0.875rem;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .row-label {
+        height: 56px;
+      }
     }
 
     .board {

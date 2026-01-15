@@ -16,6 +16,7 @@ import {
 import { GameStateService } from './game-state.service';
 import { MoveValidationService } from './move-validation.service';
 import { ComputerPlayerService } from './computer-player.service';
+import { SoundService } from './sound.service';
 
 @Injectable({
   providedIn: 'root'
@@ -25,6 +26,7 @@ export class GameEngineService {
   private gameState = inject(GameStateService);
   private moveValidation = inject(MoveValidationService);
   private computerPlayer = inject(ComputerPlayerService);
+  private sound = inject(SoundService);
 
   // Flag to prevent multiple computer moves
   private isComputerThinking = false;
@@ -59,11 +61,15 @@ export class GameEngineService {
     if (flips.length === 0) {
       // Invalid move - show error message matching original
       this.gameState.setMessage('You may only move to a space where the cursor is a cross.');
+      this.sound.play('invalid');
       return false;
     }
 
     // Clear any previous message
     this.gameState.setMessage(null);
+
+    // Play move sound
+    this.sound.play('move');
 
     // Apply the move
     this.applyMove({ position: { row, col }, flips }, Player.Human);
@@ -302,10 +308,13 @@ export class GameEngineService {
 
     if (result.winner === null) {
       message = 'Tie Game';
+      this.sound.play('draw');
     } else if (result.winner === Player.Human) {
       message = `You Won by ${result.scoreDifference}`;
+      this.sound.play('win');
     } else {
       message = `You Lost by ${result.scoreDifference}`;
+      this.sound.play('lose');
     }
 
     this.gameState.setMessage(message);

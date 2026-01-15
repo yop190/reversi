@@ -30,6 +30,7 @@ import { GameStateService } from './services/game-state.service';
 import { WebSocketService } from './services/websocket.service';
 import { AuthService } from './services/auth.service';
 import { I18nService } from './services/i18n.service';
+import { SoundService } from './services/sound.service';
 import { SkillLevel } from './models/game.types';
 
 type GameMode = 'menu' | 'single-player' | 'multiplayer' | 'leaderboard' | 'login';
@@ -65,6 +66,7 @@ export class AppComponent implements OnInit {
   protected ws = inject(WebSocketService);
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
+  protected sound = inject(SoundService);
   private snackBar = inject(MatSnackBar);
 
   @ViewChild(BoardComponent) boardComponent!: BoardComponent;

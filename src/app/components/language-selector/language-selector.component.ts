@@ -39,10 +39,7 @@ import { I18nService, SupportedLocale } from '../../services/i18n.service';
           (click)="selectLanguage(locale.code)"
           [class.selected]="locale.code === i18n.currentLocale()">
           <span class="flag">{{ locale.flag }}</span>
-          <span class="lang-info">
-            <span class="native-name">{{ locale.nativeName }}</span>
-            <span class="english-name">{{ locale.name }}</span>
-          </span>
+          <span class="native-name">{{ locale.nativeName }}</span>
           @if (locale.code === i18n.currentLocale()) {
             <mat-icon>check</mat-icon>
           }
@@ -67,19 +64,9 @@ import { I18nService, SupportedLocale } from '../../services/i18n.service';
         gap: 0.5rem;
       }
 
-      .lang-info {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-      }
-
       .native-name {
         font-weight: 500;
-      }
-
-      .english-name {
-        font-size: 0.75rem;
-        color: #666;
+        flex: 1;
       }
 
       .selected {

@@ -165,8 +165,15 @@
             </div>
           </div>
 
-          <!-- Right side: Language selector and menu -->
+          <!-- Right side: Sound toggle, Language selector and menu -->
           <div class="flex items-center gap-2">
+            <!-- Sound Toggle -->
+            <button mat-icon-button 
+                    (click)="sound.toggleSound()"
+                    [matTooltip]="sound.enabled() ? 'Mute sounds' : 'Enable sounds'"
+                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+              <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
+            </button>
             <app-language-selector></app-language-selector>
             <!-- Menu Component (handles game controls and settings) -->
             <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
