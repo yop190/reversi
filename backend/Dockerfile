@@ -23,6 +23,9 @@ COPY backend/tsconfig.json ./
 # Build the application
 RUN npm run build
 
+# Prune devDependencies for production (removes cross-spawn, glob vulnerabilities from ts-node)
+RUN npm prune --production
+
 # ============================================
 # Production Stage
 # ============================================

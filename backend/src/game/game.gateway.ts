@@ -44,12 +44,13 @@ interface AuthenticatedSocket extends Socket {
       // Allow requests with no origin (like mobile apps or curl)
       if (!origin) return callback(null, true);
 
-      // eslint-disable-next-line security/detect-unsafe-regex
+      /* eslint-disable security/detect-unsafe-regex */
       const allowedPatterns = [
         /^http:\/\/localhost(:\d+)?$/, // localhost with any port
         /^https:\/\/reversi\.lebrere\.fr$/, // custom domain
         /^https:\/\/.*\.azurecontainerapps\.io$/, // any Azure Container Apps
       ];
+      /* eslint-enable security/detect-unsafe-regex */
 
       const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
       callback(null, isAllowed);
