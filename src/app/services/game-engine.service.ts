@@ -99,6 +99,25 @@ export class GameEngineService {
 
     // Flip captured pieces
     this.gameState.applyMoves(move.flips, playerCell);
+
+    // Update music mood based on score
+    this.updateMusicMood();
+  }
+
+  /**
+   * Update the music mood based on current score
+   */
+  private updateMusicMood(): void {
+    const score = this.gameState.score();
+    const diff = score.black - score.white; // Human is black
+    
+    if (diff >= 5) {
+      this.sound.setMusicMood('winning');
+    } else if (diff <= -5) {
+      this.sound.setMusicMood('losing');
+    } else {
+      this.sound.setMusicMood('neutral');
+    }
   }
 
   /**

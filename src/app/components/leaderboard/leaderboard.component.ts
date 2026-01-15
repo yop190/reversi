@@ -13,6 +13,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatDividerModule } from '@angular/material/divider';
 import { AuthService } from '../../services/auth.service';
 import { I18nService } from '../../services/i18n.service';
+import { SoundService } from '../../services/sound.service';
 import { environment } from '../../../environments/environment';
 
 interface LeaderboardEntry {
@@ -220,7 +221,24 @@ interface LeaderboardEntry {
     .leaderboard-list mat-list-item {
       color: white;
       border-radius: 8px;
+      margin-bottom: 8px;
+      min-height: 72px;
+      height: auto !important;
+    }
+
+    .leaderboard-list ::ng-deep .mdc-list-item__content {
+      padding: 8px 0;
+    }
+
+    .leaderboard-list ::ng-deep .mat-mdc-list-item-title {
+      font-weight: 500;
       margin-bottom: 4px;
+    }
+
+    .leaderboard-list ::ng-deep .mat-mdc-list-item-line {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
     }
 
     .rank-badge {
@@ -300,12 +318,14 @@ interface LeaderboardEntry {
 export class LeaderboardComponent implements OnInit {
   protected i18n = inject(I18nService);
   private auth = inject(AuthService);
+  private sound = inject(SoundService);
 
   leaderboard = signal<LeaderboardEntry[]>([]);
   myRank = signal<number | null>(null);
   totalGames = signal(0);
   isLoading = signal(false);
   error = signal<string | null>(null);
+  private fanfarePlayed = false;
 
   currentUserId = () => this.auth.user()?.id || null;
 
@@ -344,6 +364,12 @@ export class LeaderboardComponent implements OnInit {
 
       // Fetch current user's rank
       await this.loadMyRank();
+
+      // Play victory fanfare on first successful load
+      if (!this.fanfarePlayed && data.leaderboard?.length > 0) {
+        this.sound.play('leaderboard');
+        this.fanfarePlayed = true;
+      }
     } catch (err) {
       console.error('Leaderboard error:', err);
       this.error.set('Failed to load leaderboard');

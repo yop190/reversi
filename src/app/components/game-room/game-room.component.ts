@@ -11,6 +11,7 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { WebSocketService } from '../../services/websocket.service';
+import { I18nService } from '../../services/i18n.service';
 import { MultiplayerBoardComponent } from '../multiplayer-board/multiplayer-board.component';
 import { PlayerColor } from '@shared/game.types';
 
@@ -31,17 +32,17 @@ import { PlayerColor } from '@shared/game.types';
       <!-- Room Header -->
       <header class="room-header glass-card">
         <div class="header-left">
-          <button mat-icon-button (click)="leaveRoom()" matTooltip="Leave Room">
+          <button mat-icon-button (click)="leaveRoom()" matTooltip="{{ i18n.translate('leaveRoom') }}">
             <mat-icon>arrow_back</mat-icon>
           </button>
           <div class="room-info">
             <h2>{{ roomState().room?.name }}</h2>
             <div class="room-meta">
-              <span class="room-id">Room: {{ roomState().room?.id }}</span>
+              <span class="room-id">{{ i18n.translate('room') }}: {{ roomState().room?.id }}</span>
               @if (ws.isSpectator()) {
                 <mat-chip class="spectator-chip">
                   <mat-icon>visibility</mat-icon>
-                  Spectator Mode
+                  {{ i18n.translate('spectatorMode') }}
                 </mat-chip>
               }
             </div>
@@ -53,14 +54,14 @@ import { PlayerColor } from '@shared/game.types';
             @if (roomState().room?.players?.length === 2) {
               <button mat-raised-button color="primary" (click)="restartGame()">
                 <mat-icon>play_arrow</mat-icon>
-                Start Game
+                {{ i18n.translate('startGame') }}
               </button>
             }
           }
           @if (ws.gameInProgress() && !ws.isSpectator()) {
-            <button mat-stroked-button (click)="requestHint()" matTooltip="Get Hint (H)">
+            <button mat-stroked-button (click)="requestHint()" matTooltip="{{ i18n.translate('hint') }} (H)">
               <mat-icon>lightbulb</mat-icon>
-              Hint
+              {{ i18n.translate('hint') }}
             </button>
           }
         </div>
@@ -79,10 +80,10 @@ import { PlayerColor } from '@shared/game.types';
               <div class="player-name">
                 {{ player.username }}
                 @if (player.id === ws.connectionState().playerId) {
-                  <span class="you-badge">(You)</span>
+                  <span class="you-badge">({{ i18n.translate('you') }})</span>
                 }
               </div>
-              <div class="player-color">{{ player.color | titlecase }}</div>
+              <div class="player-color">{{ player.color === 'black' ? i18n.translate('black') : i18n.translate('white') }}</div>
             </div>
             <div class="player-score">
               {{ getScore(player.color!) }}
@@ -101,7 +102,7 @@ import { PlayerColor } from '@shared/game.types';
               <mat-icon>person_add</mat-icon>
             </div>
             <div class="player-info">
-              <div class="player-name">Waiting for opponent...</div>
+              <div class="player-name">{{ i18n.translate('waitingForOpponent') }}</div>
               <div class="waiting-animation">
                 <span></span><span></span><span></span>
               </div>
@@ -125,18 +126,18 @@ import { PlayerColor } from '@shared/game.types';
           <div class="waiting-message glass-card">
             @if (ws.waitingForOpponent()) {
               <mat-icon>hourglass_empty</mat-icon>
-              <h3>Waiting for another player...</h3>
-              <p>Share the room ID with a friend to start playing!</p>
+              <h3>{{ i18n.translate('waitingForOpponent') }}</h3>
+              <p>{{ i18n.translate('shareRoomId') }}</p>
               <div class="room-id-display">
                 <code>{{ roomState().room?.id }}</code>
-                <button mat-icon-button (click)="copyRoomId()" matTooltip="Copy Room ID">
+                <button mat-icon-button (click)="copyRoomId()" matTooltip="{{ i18n.translate('copyRoomId') }}">
                   <mat-icon>content_copy</mat-icon>
                 </button>
               </div>
             } @else {
               <mat-icon>sports_esports</mat-icon>
-              <h3>Ready to play!</h3>
-              <p>Click "Start Game" to begin</p>
+              <h3>{{ i18n.translate('readyToPlay') }}</h3>
+              <p>{{ i18n.translate('startGame') }}</p>
             }
           </div>
         }
@@ -148,20 +149,20 @@ import { PlayerColor } from '@shared/game.types';
           <mat-icon>emoji_events</mat-icon>
           <div class="result">
             @if (gameState()?.winner === 'draw') {
-              <h3>It's a Draw!</h3>
+              <h3>{{ i18n.translate('draw') }}</h3>
             } @else if (gameState()?.winner === roomState().yourColor) {
-              <h3>You Won! 🎉</h3>
+              <h3>{{ i18n.translate('youWin') }} 🎉</h3>
             } @else if (ws.isSpectator()) {
-              <h3>{{ gameState()?.winner | titlecase }} Wins!</h3>
+              <h3>{{ gameState()?.winner === 'black' ? i18n.translate('blackWins') : i18n.translate('whiteWins') }}</h3>
             } @else {
-              <h3>You Lost</h3>
+              <h3>{{ i18n.translate('youLose') }}</h3>
             }
             <p>{{ gameState()?.blackScore }} - {{ gameState()?.whiteScore }}</p>
           </div>
           @if (!ws.isSpectator()) {
             <button mat-raised-button color="primary" (click)="restartGame()">
               <mat-icon>refresh</mat-icon>
-              Play Again
+              {{ i18n.translate('restart') }}
             </button>
           }
         </div>
@@ -172,7 +173,7 @@ import { PlayerColor } from '@shared/game.types';
         <div class="spectators-section glass-card">
           <div class="spectators-header">
             <mat-icon>visibility</mat-icon>
-            <span>{{ spectators().length }} Spectator{{ spectators().length > 1 ? 's' : '' }}</span>
+            <span>{{ spectators().length }} {{ i18n.translate('spectators') }}</span>
           </div>
           <div class="spectator-list">
             @for (spectator of spectators(); track spectator.id) {
@@ -537,6 +538,7 @@ import { PlayerColor } from '@shared/game.types';
 })
 export class GameRoomComponent implements OnInit {
   ws = inject(WebSocketService);
+  i18n = inject(I18nService);
   private snackBar = inject(MatSnackBar);
   
   readonly roomState = this.ws.roomState;

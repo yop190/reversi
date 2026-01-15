@@ -16,7 +16,9 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { WebSocketService } from '../../services/websocket.service';
+import { I18nService } from '../../services/i18n.service';
 import { RoomSummary } from '@shared/game.types';
 
 @Component({
@@ -35,6 +37,7 @@ import { RoomSummary } from '@shared/game.types';
     MatProgressSpinnerModule,
     MatChipsModule,
     MatDividerModule,
+    MatTooltipModule,
   ],
   template: `
     <div class="lobby-container">
@@ -43,17 +46,17 @@ import { RoomSummary } from '@shared/game.types';
         <div class="username-card glass-card">
           <div class="card-header">
             <mat-icon class="logo-icon">sports_esports</mat-icon>
-            <h1>Multiplayer Reversi</h1>
-            <p class="subtitle">Enter your username to start playing</p>
+            <h1>{{ i18n.translate('multiplayer') }} Reversi</h1>
+            <p class="subtitle">{{ i18n.translate('enterUsername') }}</p>
           </div>
           
           <div class="username-form">
             <mat-form-field appearance="outline" class="full-width">
-              <mat-label>Username</mat-label>
+              <mat-label>{{ i18n.translate('username') }}</mat-label>
               <input matInput 
                      [(ngModel)]="usernameInput" 
                      (keyup.enter)="setUsername()"
-                     placeholder="Enter your name..."
+                     placeholder="..."
                      maxlength="20">
               <mat-icon matSuffix>person</mat-icon>
             </mat-form-field>
@@ -64,14 +67,14 @@ import { RoomSummary } from '@shared/game.types';
                     [disabled]="!usernameInput.trim()"
                     (click)="setUsername()">
               <mat-icon>login</mat-icon>
-              Enter Lobby
+              {{ i18n.translate('enterLobby') }}
             </button>
           </div>
           
           @if (!ws.isConnected()) {
             <div class="connecting-message">
               <mat-spinner diameter="20"></mat-spinner>
-              <span>Connecting to server...</span>
+              <span>{{ i18n.translate('connecting') }}</span>
             </div>
           }
         </div>
@@ -85,10 +88,10 @@ import { RoomSummary } from '@shared/game.types';
             <div class="header-left">
               <mat-icon class="lobby-icon">groups</mat-icon>
               <div>
-                <h2>Game Lobby</h2>
+                <h2>{{ i18n.translate('gameLobby') }}</h2>
                 <p class="online-count">
                   <span class="online-dot"></span>
-                  {{ ws.lobbyState().onlineCount }} players online
+                  {{ ws.lobbyState().onlineCount }} {{ i18n.translate('playersOnline') }}
                 </p>
               </div>
             </div>
@@ -97,6 +100,9 @@ import { RoomSummary } from '@shared/game.types';
                 <mat-icon>person</mat-icon>
                 {{ ws.connectionState().username }}
               </span>
+              <button mat-icon-button color="warn" (click)="disconnect()" matTooltip="{{ i18n.translate('disconnect') }}">
+                <mat-icon>logout</mat-icon>
+              </button>
             </div>
           </div>
           
@@ -107,14 +113,14 @@ import { RoomSummary } from '@shared/game.types';
                     class="create-room-btn"
                     (click)="createRoom()">
               <mat-icon>add</mat-icon>
-              Create New Room
+              {{ i18n.translate('createNewRoom') }}
             </button>
             
             <button mat-stroked-button 
                     color="accent"
                     (click)="quickJoin()">
               <mat-icon>flash_on</mat-icon>
-              Quick Join
+              {{ i18n.translate('quickJoin') }}
             </button>
           </div>
           
@@ -122,14 +128,14 @@ import { RoomSummary } from '@shared/game.types';
           <div class="rooms-section glass-card">
             <h3>
               <mat-icon>meeting_room</mat-icon>
-              Available Rooms
+              {{ i18n.translate('availableRooms') }}
             </h3>
             
             @if (ws.lobbyState().rooms.length === 0) {
               <div class="empty-rooms">
                 <mat-icon>inbox</mat-icon>
-                <p>No rooms available</p>
-                <p class="hint">Create a new room to start playing!</p>
+                <p>{{ i18n.translate('noRoomsAvailable') }}</p>
+                <p class="hint">{{ i18n.translate('createNewRoom') }}!</p>
               </div>
             } @else {
               <div class="room-list">
@@ -140,12 +146,12 @@ import { RoomSummary } from '@shared/game.types';
                       <div class="room-meta">
                         <span class="player-count">
                           <mat-icon>person</mat-icon>
-                          {{ room.playerCount }}/2 players
+                          {{ room.playerCount }}/2 {{ i18n.translate('players') }}
                         </span>
                         @if (room.spectatorCount > 0) {
                           <span class="spectator-count">
                             <mat-icon>visibility</mat-icon>
-                            {{ room.spectatorCount }} watching
+                            {{ room.spectatorCount }} {{ i18n.translate('watching') }}
                           </span>
                         }
                       </div>
@@ -155,17 +161,17 @@ import { RoomSummary } from '@shared/game.types';
                       @if (room.inProgress) {
                         <mat-chip class="status-chip in-progress">
                           <mat-icon>play_circle</mat-icon>
-                          In Progress
+                          {{ i18n.translate('inProgress') }}
                         </mat-chip>
                       } @else if (room.playerCount < 2) {
                         <mat-chip class="status-chip waiting">
                           <mat-icon>hourglass_empty</mat-icon>
-                          Waiting
+                          {{ i18n.translate('waiting') }}
                         </mat-chip>
                       } @else {
                         <mat-chip class="status-chip ready">
                           <mat-icon>check_circle</mat-icon>
-                          Ready
+                          {{ i18n.translate('ready') }}
                         </mat-chip>
                       }
                     </div>
@@ -176,12 +182,12 @@ import { RoomSummary } from '@shared/game.types';
                       @if (room.playerCount < 2) {
                         <ng-container>
                           <mat-icon>login</mat-icon>
-                          Join
+                          {{ i18n.translate('join') }}
                         </ng-container>
                       } @else {
                         <ng-container>
                           <mat-icon>visibility</mat-icon>
-                          Watch
+                          {{ i18n.translate('watch') }}
                         </ng-container>
                       }
                     </button>
@@ -525,6 +531,7 @@ import { RoomSummary } from '@shared/game.types';
 })
 export class LobbyComponent implements OnInit, OnDestroy {
   ws = inject(WebSocketService);
+  i18n = inject(I18nService);
   
   usernameInput = '';
   
@@ -545,6 +552,11 @@ export class LobbyComponent implements OnInit, OnDestroy {
     if (username) {
       this.ws.setUsername(username);
     }
+  }
+
+  disconnect(): void {
+    this.ws.disconnect();
+    this.usernameInput = '';
   }
   
   createRoom(): void {

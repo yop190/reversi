@@ -61,6 +61,8 @@ main {
 
 .logo-container {
   margin-bottom: 3rem;
+  margin-top: 3rem; /* Add space from top bar to avoid overlap */
+  padding-top: 1rem;
 }
 
 .logo-icon {

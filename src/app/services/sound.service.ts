@@ -6,7 +6,7 @@
 
 import { Injectable, signal } from '@angular/core';
 
-export type SoundType = 'move' | 'capture' | 'win' | 'lose' | 'draw' | 'invalid';
+export type SoundType = 'move' | 'capture' | 'win' | 'lose' | 'draw' | 'invalid' | 'leaderboard';
 
 @Injectable({
   providedIn: 'root',
@@ -18,6 +18,7 @@ export class SoundService {
   private musicGainNode: GainNode | null = null;
   private musicOscillators: OscillatorNode[] = [];
   private musicInterval: any = null;
+  private currentMood: 'neutral' | 'winning' | 'losing' = 'neutral';
   
   readonly enabled = this._enabled.asReadonly();
   readonly musicEnabled = this._musicEnabled.asReadonly();
@@ -95,7 +96,17 @@ export class SoundService {
       case 'invalid':
         this.playInvalidSound();
         break;
+      case 'leaderboard':
+        this.playLeaderboardFanfare();
+        break;
     }
+  }
+
+  /**
+   * Set music mood based on game state
+   */
+  setMusicMood(mood: 'neutral' | 'winning' | 'losing'): void {
+    this.currentMood = mood;
   }
 
   /**
@@ -358,13 +369,37 @@ export class SoundService {
       }
     });
     
-    // Ambient chord progressions (frequencies in Hz)
-    const chords = [
-      [130.81, 164.81, 196.00, 261.63], // C major
-      [146.83, 174.61, 220.00, 293.66], // D minor
-      [164.81, 196.00, 246.94, 329.63], // E minor
-      [174.61, 220.00, 261.63, 349.23], // F major
-    ];
+    // Chord progressions based on mood
+    let chords: number[][];
+    
+    switch (this.currentMood) {
+      case 'winning':
+        // Bright, major chords
+        chords = [
+          [261.63, 329.63, 392.00, 523.25], // C major (higher octave)
+          [293.66, 369.99, 440.00, 587.33], // D major
+          [329.63, 415.30, 493.88, 659.25], // E major
+          [349.23, 440.00, 523.25, 698.46], // F major
+        ];
+        break;
+      case 'losing':
+        // Dark, minor chords
+        chords = [
+          [130.81, 155.56, 196.00, 261.63], // C minor
+          [146.83, 174.61, 220.00, 293.66], // D minor
+          [164.81, 196.00, 233.08, 329.63], // E minor
+          [174.61, 207.65, 261.63, 349.23], // F minor
+        ];
+        break;
+      default:
+        // Neutral, mix of major and minor
+        chords = [
+          [130.81, 164.81, 196.00, 261.63], // C major
+          [146.83, 174.61, 220.00, 293.66], // D minor
+          [164.81, 196.00, 246.94, 329.63], // E minor
+          [174.61, 220.00, 261.63, 349.23], // F major
+        ];
+    }
     
     // Pick a random chord
     const chord = chords[Math.floor(Math.random() * chords.length)];
@@ -417,5 +452,104 @@ export class SoundService {
     highPad.stop(this.audioContext.currentTime + 8);
     
     this.musicOscillators.push(highPad);
+  }
+
+  /**
+   * Play a Mario Kart-style victory fanfare for the leaderboard
+   */
+  private playLeaderboardFanfare(): void {
+    if (!this.audioContext) return;
+
+    // Stop any currently playing music
+    this.stopMusic();
+    
+    // Mario Kart-inspired victory melody notes (in Hz)
+    // C-E-G ascending arpeggio followed by high C fanfare
+    const melody = [
+      { freq: 261.63, start: 0, duration: 0.15 },      // C4
+      { freq: 329.63, start: 0.12, duration: 0.15 },   // E4
+      { freq: 392.00, start: 0.24, duration: 0.15 },   // G4
+      { freq: 523.25, start: 0.36, duration: 0.3 },    // C5 (hold)
+      { freq: 659.25, start: 0.55, duration: 0.15 },   // E5
+      { freq: 783.99, start: 0.67, duration: 0.15 },   // G5
+      { freq: 1046.50, start: 0.79, duration: 0.5 },   // C6 (final)
+    ];
+
+    // Harmony notes (thirds below melody)
+    const harmony = [
+      { freq: 196.00, start: 0, duration: 0.15 },      // G3
+      { freq: 261.63, start: 0.12, duration: 0.15 },   // C4
+      { freq: 329.63, start: 0.24, duration: 0.15 },   // E4
+      { freq: 392.00, start: 0.36, duration: 0.3 },    // G4
+      { freq: 523.25, start: 0.55, duration: 0.15 },   // C5
+      { freq: 659.25, start: 0.67, duration: 0.15 },   // E5
+      { freq: 783.99, start: 0.79, duration: 0.5 },    // G5
+    ];
+
+    // Bass notes
+    const bass = [
+      { freq: 130.81, start: 0, duration: 0.5 },       // C3
+      { freq: 164.81, start: 0.5, duration: 0.8 },     // E3
+    ];
+
+    const playNote = (freq: number, start: number, duration: number, volume: number, type: OscillatorType = 'triangle') => {
+      const osc = this.audioContext!.createOscillator();
+      const gain = this.audioContext!.createGain();
+      
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, this.audioContext!.currentTime);
+      
+      osc.connect(gain);
+      gain.connect(this.audioContext!.destination);
+      
+      const attackTime = 0.02;
+      const releaseTime = duration * 0.3;
+      
+      gain.gain.setValueAtTime(0, this.audioContext!.currentTime + start);
+      gain.gain.linearRampToValueAtTime(volume, this.audioContext!.currentTime + start + attackTime);
+      gain.gain.setValueAtTime(volume, this.audioContext!.currentTime + start + duration - releaseTime);
+      gain.gain.linearRampToValueAtTime(0, this.audioContext!.currentTime + start + duration);
+      
+      osc.start(this.audioContext!.currentTime + start);
+      osc.stop(this.audioContext!.currentTime + start + duration + 0.1);
+    };
+
+    // Play melody (louder, square wave for that classic sound)
+    melody.forEach(note => {
+      playNote(note.freq, note.start, note.duration, 0.2, 'square');
+    });
+
+    // Play harmony
+    harmony.forEach(note => {
+      playNote(note.freq, note.start, note.duration, 0.12, 'triangle');
+    });
+
+    // Play bass
+    bass.forEach(note => {
+      playNote(note.freq, note.start, note.duration, 0.15, 'sine');
+    });
+
+    // Add a final triumphant chord
+    const finalChord = [523.25, 659.25, 783.99, 1046.50]; // C major spread
+    finalChord.forEach((freq, i) => {
+      const osc = this.audioContext!.createOscillator();
+      const gain = this.audioContext!.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, this.audioContext!.currentTime);
+      
+      osc.connect(gain);
+      gain.connect(this.audioContext!.destination);
+      
+      const startTime = 1.1 + (i * 0.02);
+      
+      gain.gain.setValueAtTime(0, this.audioContext!.currentTime + startTime);
+      gain.gain.linearRampToValueAtTime(0.15, this.audioContext!.currentTime + startTime + 0.1);
+      gain.gain.setValueAtTime(0.15, this.audioContext!.currentTime + startTime + 0.8);
+      gain.gain.linearRampToValueAtTime(0, this.audioContext!.currentTime + startTime + 1.5);
+      
+      osc.start(this.audioContext!.currentTime + startTime);
+      osc.stop(this.audioContext!.currentTime + startTime + 1.6);
+    });
   }
 }

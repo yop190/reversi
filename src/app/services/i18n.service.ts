@@ -92,6 +92,30 @@ export interface Translations {
   availableRooms: string;
   noRoomsAvailable: string;
   inProgress: string;
+  disconnect: string;
+  enterLobby: string;
+  enterUsername: string;
+  username: string;
+  gameLobby: string;
+  playersOnline: string;
+  quickJoin: string;
+  watching: string;
+  waiting: string;
+  ready: string;
+  join: string;
+  watch: string;
+  createNewRoom: string;
+  spectatorMode: string;
+  room: string;
+  startGame: string;
+  shareRoomId: string;
+  readyToPlay: string;
+  copyRoomId: string;
+  yourScore: string;
+  opponentScore: string;
+  you: string;
+  black: string;
+  white: string;
   
   // Leaderboard
   leaderboard: string;
@@ -189,6 +213,30 @@ const EN_TRANSLATIONS: Translations = {
   availableRooms: 'Available Rooms',
   noRoomsAvailable: 'No rooms available',
   inProgress: 'In Progress',
+  disconnect: 'Disconnect',
+  enterLobby: 'Enter Lobby',
+  enterUsername: 'Enter your username to start playing',
+  username: 'Username',
+  gameLobby: 'Game Lobby',
+  playersOnline: 'players online',
+  quickJoin: 'Quick Join',
+  watching: 'watching',
+  waiting: 'Waiting',
+  ready: 'Ready',
+  join: 'Join',
+  watch: 'Watch',
+  createNewRoom: 'Create New Room',
+  spectatorMode: 'Spectator Mode',
+  room: 'Room',
+  startGame: 'Start Game',
+  shareRoomId: 'Share the room ID with a friend to start playing!',
+  readyToPlay: 'Ready to play!',
+  copyRoomId: 'Copy Room ID',
+  yourScore: 'Your Score',
+  opponentScore: 'Opponent Score',
+  you: 'You',
+  black: 'Black',
+  white: 'White',
   
   leaderboard: 'Leaderboard',
   rank: 'Rank',
@@ -282,6 +330,30 @@ const FR_TRANSLATIONS: Translations = {
   availableRooms: 'Salles disponibles',
   noRoomsAvailable: 'Aucune salle disponible',
   inProgress: 'En cours',
+  disconnect: 'Se déconnecter',
+  enterLobby: 'Entrer dans le salon',
+  enterUsername: 'Entrez votre nom pour commencer à jouer',
+  username: 'Nom d\'utilisateur',
+  gameLobby: 'Salon de jeu',
+  playersOnline: 'joueurs en ligne',
+  quickJoin: 'Rejoindre rapidement',
+  watching: 'regardent',
+  waiting: 'En attente',
+  ready: 'Prêt',
+  join: 'Rejoindre',
+  watch: 'Regarder',
+  createNewRoom: 'Créer une nouvelle salle',
+  spectatorMode: 'Mode spectateur',
+  room: 'Salle',
+  startGame: 'Commencer la partie',
+  shareRoomId: 'Partagez l\'ID de la salle avec un ami pour commencer !',
+  readyToPlay: 'Prêt à jouer !',
+  copyRoomId: 'Copier l\'ID de la salle',
+  yourScore: 'Votre score',
+  opponentScore: 'Score adversaire',
+  you: 'Vous',
+  black: 'Noir',
+  white: 'Blanc',
   
   leaderboard: 'Classement',
   rank: 'Rang',
@@ -375,6 +447,30 @@ const NL_TRANSLATIONS: Translations = {
   availableRooms: 'Beschikbare Kamers',
   noRoomsAvailable: 'Geen kamers beschikbaar',
   inProgress: 'Bezig',
+  disconnect: 'Verbinding verbreken',
+  enterLobby: 'Lobby betreden',
+  enterUsername: 'Voer je gebruikersnaam in om te beginnen',
+  username: 'Gebruikersnaam',
+  gameLobby: 'Spellobby',
+  playersOnline: 'spelers online',
+  quickJoin: 'Snel deelnemen',
+  watching: 'kijken',
+  waiting: 'Wachten',
+  ready: 'Klaar',
+  join: 'Deelnemen',
+  watch: 'Kijken',
+  createNewRoom: 'Nieuwe kamer aanmaken',
+  spectatorMode: 'Toeschouwermodus',
+  room: 'Kamer',
+  startGame: 'Spel starten',
+  shareRoomId: 'Deel de kamer-ID met een vriend om te beginnen!',
+  readyToPlay: 'Klaar om te spelen!',
+  copyRoomId: 'Kamer-ID kopiëren',
+  yourScore: 'Jouw score',
+  opponentScore: 'Score tegenstander',
+  you: 'Jij',
+  black: 'Zwart',
+  white: 'Wit',
   
   leaderboard: 'Ranglijst',
   rank: 'Rang',
@@ -468,6 +564,30 @@ const DA_TRANSLATIONS: Translations = {
   availableRooms: 'Tilgængelige Rum',
   noRoomsAvailable: 'Ingen rum tilgængelige',
   inProgress: 'I Gang',
+  disconnect: 'Afbryd forbindelse',
+  enterLobby: 'Gå ind i lobby',
+  enterUsername: 'Indtast dit brugernavn for at begynde',
+  username: 'Brugernavn',
+  gameLobby: 'Spillobby',
+  playersOnline: 'spillere online',
+  quickJoin: 'Hurtig tilslutning',
+  watching: 'ser',
+  waiting: 'Venter',
+  ready: 'Klar',
+  join: 'Tilslut',
+  watch: 'Se',
+  createNewRoom: 'Opret nyt rum',
+  spectatorMode: 'Tilskuertilstand',
+  room: 'Rum',
+  startGame: 'Start spil',
+  shareRoomId: 'Del rum-ID med en ven for at begynde!',
+  readyToPlay: 'Klar til at spille!',
+  copyRoomId: 'Kopier rum-ID',
+  yourScore: 'Din score',
+  opponentScore: 'Modstanders score',
+  you: 'Dig',
+  black: 'Sort',
+  white: 'Hvid',
   
   leaderboard: 'Rangliste',
   rank: 'Rang',

@@ -33,9 +33,11 @@
   @if (gameMode() === 'menu') {
     <div class="flex-1 flex items-center justify-center p-4">
       <div class="mode-selection glass-card text-center">
-        <!-- User Info or Sign In -->
-        <div class="absolute top-4 right-4 flex items-center gap-2">
+        <!-- Top bar: Language left, User info right -->
+        <div class="absolute top-4 left-4">
           <app-language-selector></app-language-selector>
+        </div>
+        <div class="absolute top-4 right-4 flex items-center gap-2">
           @if (isAuthenticated()) {
             <div class="flex items-center gap-2">
               @if (currentUser()?.photoUrl) {
@@ -165,8 +167,18 @@
             </div>
           </div>
 
-          <!-- Right side: Sound toggle, Language selector and menu -->
-          <div class="flex items-center gap-2">
+          <!-- Right side: New Game, Menu, Music, Sound, Language -->
+          <div class="flex items-center gap-1">
+            <!-- New Game Button (first) -->
+            <button mat-icon-button 
+                    (click)="onNewGame()"
+                    matTooltip="New Game (N)"
+                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+              <mat-icon>refresh</mat-icon>
+            </button>
+            <!-- Menu Component (game controls) -->
+            <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
+              (skillChange)="onSkillChange($event)"></app-menu>
             <!-- Music Toggle -->
             <button mat-icon-button 
                     (click)="sound.toggleMusic()"
@@ -181,10 +193,8 @@
                     class="!text-slate-300 hover:!text-white hover:!bg-white/10">
               <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
             </button>
+            <!-- Language selector (last) -->
             <app-language-selector></app-language-selector>
-            <!-- Menu Component (handles game controls and settings) -->
-            <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
-              (skillChange)="onSkillChange($event)"></app-menu>
           </div>
         </div>
       </div>
