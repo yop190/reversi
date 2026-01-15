@@ -264,12 +264,15 @@ jobs:
           ACR_USERNAME=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "username" -o tsv)
           ACR_PASSWORD=$(az acr credential show --name ${{ env.AZURE_CONTAINER_REGISTRY }} --query "passwords[0].value" -o tsv)
           
-          # Prepare environment variables with secrets from Key Vault
-          ENV_VARS="GOOGLE_CLIENT_ID=${{ steps.keyvault-secrets.outputs.google-client-id }}"
-          ENV_VARS="$ENV_VARS,GOOGLE_CLIENT_SECRET=${{ steps.keyvault-secrets.outputs.google-client-secret }}"
-          ENV_VARS="$ENV_VARS,JWT_SECRET=${{ steps.keyvault-secrets.outputs.jwt-secret }}"
-          ENV_VARS="$ENV_VARS,FIREBASE_SERVICE_ACCOUNT=${{ steps.keyvault-secrets.outputs.firebase-service-account }}"
-          ENV_VARS="$ENV_VARS,NODE_ENV=production"
+          # Prepare environment variables with secrets from Key Vault (use CONFIGURE_ME for unconfigured)
+          GOOGLE_CLIENT_ID="${{ steps.keyvault-secrets.outputs.google-client-id }}"
+          GOOGLE_CLIENT_SECRET="${{ steps.keyvault-secrets.outputs.google-client-secret }}"
+          JWT_SECRET="${{ steps.keyvault-secrets.outputs.jwt-secret }}"
+          FIREBASE_SERVICE_ACCOUNT="${{ steps.keyvault-secrets.outputs.firebase-service-account }}"
+          
+          # Default empty values to prevent malformed env vars
+          GOOGLE_CLIENT_ID="${GOOGLE_CLIENT_ID:-CONFIGURE_ME}"
+          JWT_SECRET="${JWT_SECRET:-reversi-jwt-secret-change-in-production}"
           
           # Check if Backend Container App exists
           if az containerapp show --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} &>/dev/null; then
@@ -278,7 +281,12 @@ jobs:
               --name ${{ env.AZURE_CONTAINER_APP_BACKEND }} \
               --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
               --image ${{ env.BACKEND_IMAGE_TAG }} \
-              --set-env-vars $ENV_VARS \
+              --set-env-vars \
+                "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
+                "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
+                "JWT_SECRET=$JWT_SECRET" \
+                "FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT" \
+                "NODE_ENV=production" \
               --output none
           else
             echo "📦 Creating new Backend Container App..."
@@ -292,7 +300,12 @@ jobs:
               --registry-server ${{ env.AZURE_CONTAINER_REGISTRY }}.azurecr.io \
               --registry-username $ACR_USERNAME \
               --registry-password $ACR_PASSWORD \
-              --env-vars $ENV_VARS \
+              --env-vars \
+                "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" \
+                "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" \
+                "JWT_SECRET=$JWT_SECRET" \
+                "FIREBASE_SERVICE_ACCOUNT=$FIREBASE_SERVICE_ACCOUNT" \
+                "NODE_ENV=production" \
               --min-replicas 1 \
               --max-replicas 5 \
               --cpu 0.25 \
