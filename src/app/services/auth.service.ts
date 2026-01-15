@@ -72,6 +72,19 @@ export class AuthService {
    * Initialize authentication state
    */
   private async initializeAuth() {
+    // Check for OAuth callback token in URL first
+    const urlParams = new URLSearchParams(window.location.search);
+    const callbackToken = urlParams.get('token');
+    
+    if (callbackToken && window.location.pathname.includes('/auth/callback')) {
+      // Clear token from URL to prevent reuse
+      window.history.replaceState({}, document.title, '/');
+      
+      // Handle the OAuth callback
+      await this.handleOAuthCallbackAsync(callbackToken);
+      return;
+    }
+
     // Try to restore session from storage
     const stored = this.getStoredAuth();
     if (stored) {
@@ -94,6 +107,50 @@ export class AuthService {
 
     // Load Google Identity Services
     await this.loadGoogleScript();
+  }
+
+  /**
+   * Handle OAuth callback asynchronously
+   */
+  private async handleOAuthCallbackAsync(token: string): Promise<void> {
+    this._state.update(s => ({ ...s, isLoading: true }));
+
+    const isValid = await this.verifyToken(token);
+    if (isValid) {
+      try {
+        const response = await fetch(`${environment.backendUrl}/auth/me`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        
+        if (response.ok) {
+          const user = await response.json();
+          this._state.set({
+            isAuthenticated: true,
+            user,
+            token,
+            isLoading: false,
+            error: null,
+          });
+          this.storeAuth(token, user);
+          console.log('OAuth callback successful, user authenticated:', user.displayName);
+        } else {
+          throw new Error('Failed to fetch user info');
+        }
+      } catch (error) {
+        console.error('OAuth callback error:', error);
+        this._state.update(s => ({
+          ...s,
+          isLoading: false,
+          error: 'Failed to complete authentication',
+        }));
+      }
+    } else {
+      this._state.update(s => ({
+        ...s,
+        isLoading: false,
+        error: 'Invalid token received from OAuth',
+      }));
+    }
   }
 
   /**
