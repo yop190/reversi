@@ -27,15 +27,6 @@ import { SkillLevel } from '../../models/game.types';
   ],
   template: `
     <nav class="flex items-center gap-1 sm:gap-2" role="navigation" aria-label="Game controls">
-      <!-- New Game Button -->
-      <button mat-icon-button 
-              matTooltip="New Game (N)"
-              aria-label="Start new game"
-              (click)="onNew()"
-              class="!text-slate-300 hover:!text-white hover:!bg-white/10">
-        <mat-icon>refresh</mat-icon>
-      </button>
-
       <!-- Game Menu -->
       <button mat-button 
               [matMenuTriggerFor]="gameMenu"
@@ -45,7 +36,21 @@ import { SkillLevel } from '../../models/game.types';
         <mat-icon iconPositionEnd>expand_more</mat-icon>
       </button>
 
+      <!-- Mobile: Game menu icon only -->
+      <button mat-icon-button 
+              [matMenuTriggerFor]="gameMenu"
+              matTooltip="Game Menu"
+              class="!text-slate-300 hover:!text-white hover:!bg-white/10 sm:!hidden">
+        <mat-icon>sports_esports</mat-icon>
+      </button>
+
       <mat-menu #gameMenu="matMenu" class="modern-menu">
+        <button mat-menu-item (click)="onNew()">
+          <mat-icon>refresh</mat-icon>
+          <span>New Game</span>
+          <span class="shortcut">N</span>
+        </button>
+        <mat-divider></mat-divider>
         <button mat-menu-item (click)="onHint()">
           <mat-icon>lightbulb</mat-icon>
           <span>Hint</span>
@@ -55,12 +60,6 @@ import { SkillLevel } from '../../models/game.types';
           <mat-icon>skip_next</mat-icon>
           <span>Pass</span>
           <span class="shortcut">P</span>
-        </button>
-        <mat-divider></mat-divider>
-        <button mat-menu-item (click)="onNew()">
-          <mat-icon>refresh</mat-icon>
-          <span>New Game</span>
-          <span class="shortcut">N</span>
         </button>
         <mat-divider></mat-divider>
         <button mat-menu-item (click)="onAbout()">
