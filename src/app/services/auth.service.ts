@@ -132,6 +132,12 @@ export class AuthService {
             error: null,
           });
           this.storeAuth(token, user);
+          
+          // Sync player profile with leaderboard
+          this.syncPlayerProfile(token).catch(err => {
+            console.warn('Failed to sync player profile:', err);
+          });
+          
           console.log('OAuth callback successful, user authenticated:', user.displayName);
         } else {
           throw new Error('Failed to fetch user info');
@@ -150,6 +156,25 @@ export class AuthService {
         isLoading: false,
         error: 'Invalid token received from OAuth',
       }));
+    }
+  }
+
+  /**
+   * Sync player profile with backend leaderboard service
+   */
+  private async syncPlayerProfile(token: string): Promise<void> {
+    try {
+      const response = await fetch(`${environment.backendUrl}/score/me`, {
+        method: 'GET',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      
+      if (response.ok) {
+        const scoreData = await response.json();
+        console.log('Player profile synced with leaderboard:', scoreData);
+      }
+    } catch (error) {
+      console.warn('Failed to sync player profile:', error);
     }
   }
 

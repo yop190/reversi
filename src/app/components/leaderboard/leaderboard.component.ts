@@ -94,19 +94,21 @@ interface LeaderboardEntry {
                   <mat-icon matListItemAvatar>account_circle</mat-icon>
                 }
                 
-                <div matListItemTitle>{{ entry.displayName }}</div>
-                <div matListItemLine class="stats-line">
-                  <span class="stat">
-                    <mat-icon class="stat-icon">emoji_events</mat-icon>
-                    {{ entry.wins }} {{ i18n.translate('wins') }}
-                  </span>
-                  <span class="stat">
-                    <mat-icon class="stat-icon">percent</mat-icon>
-                    {{ entry.winRate }}%
-                  </span>
-                  <span class="stat score">
-                    {{ entry.score }} pts
-                  </span>
+                <div class="player-info">
+                  <div matListItemTitle class="player-name">{{ entry.displayName }}</div>
+                  <div matListItemLine class="stats-line">
+                    <span class="stat">
+                      <mat-icon class="stat-icon">emoji_events</mat-icon>
+                      {{ entry.wins }} {{ i18n.translate('wins') }}
+                    </span>
+                    <span class="stat">
+                      <mat-icon class="stat-icon">percent</mat-icon>
+                      {{ entry.winRate }}%
+                    </span>
+                    <span class="stat score">
+                      {{ entry.score }} pts
+                    </span>
+                  </div>
                 </div>
               </mat-list-item>
             } @empty {
@@ -241,6 +243,23 @@ interface LeaderboardEntry {
       text-overflow: unset !important;
     }
 
+    .player-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .player-name {
+      font-weight: 600;
+      color: white !important;
+      font-size: 1rem !important;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
     .rank-badge {
       display: flex;
       align-items: center;
@@ -278,9 +297,11 @@ interface LeaderboardEntry {
 
     .stats-line {
       display: flex;
-      gap: 1rem;
-      font-size: 0.85rem;
-      color: rgba(255, 255, 255, 0.6);
+      gap: 1.5rem;
+      font-size: 0.80rem;
+      color: rgba(255, 255, 255, 0.7);
+      flex-wrap: wrap;
+      margin-top: 2px;
     }
 
     .stat {

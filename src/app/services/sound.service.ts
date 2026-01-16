@@ -54,9 +54,9 @@ export class SoundService {
     this.saveMusicPreference(newValue);
     
     if (newValue) {
-      this.startMusic();
+      this.startBackgroundMusic();
     } else {
-      this.stopMusic();
+      this.stopBackgroundMusic();
     }
   }
 
@@ -107,6 +107,108 @@ export class SoundService {
    */
   setMusicMood(mood: 'neutral' | 'winning' | 'losing'): void {
     this.currentMood = mood;
+  }
+
+  /**
+   * Start background music (plays automatically based on enabled preference)
+   */
+  startBackgroundMusic(): void {
+    this.initAudioContext();
+    if (!this.musicEnabled()) return;
+    
+    // Stop existing music first
+    this.stopBackgroundMusic();
+    
+    // Start new background music loop
+    this.playLoopingBackgroundMusic();
+  }
+
+  /**
+   * Stop background music
+   */
+  stopBackgroundMusic(): void {
+    if (this.musicInterval) {
+      clearInterval(this.musicInterval);
+      this.musicInterval = null;
+    }
+    
+    this.musicOscillators.forEach(osc => {
+      try {
+        osc.stop();
+      } catch (e) {
+        // Already stopped
+      }
+    });
+    this.musicOscillators = [];
+    
+    if (this.musicGainNode) {
+      this.musicGainNode.gain.linearRampToValueAtTime(0, this.audioContext!.currentTime + 0.5);
+    }
+  }
+
+  /**
+   * Play looping background music with adaptive mood
+   */
+  private playLoopingBackgroundMusic(): void {
+    if (!this.audioContext || !this.musicEnabled()) return;
+
+    const playAdaptivePhrase = () => {
+      if (!this.audioContext || !this.musicEnabled()) return;
+
+      // Base frequency depends on mood
+      let baseFreq = 261.63; // C4 for neutral
+      let speedFactor = 1;
+      
+      if (this.currentMood === 'winning') {
+        baseFreq = 329.63; // E4 for winning (happier)
+        speedFactor = 1.2;
+      } else if (this.currentMood === 'losing') {
+        baseFreq = 196; // G3 for losing (darker)
+        speedFactor = 0.8;
+      }
+
+      // Create adaptive melody
+      const notes = this.currentMood === 'winning' 
+        ? [1, 1.25, 1.5, 1.25, 1, 0.875, 0.875] // Happy ascending
+        : this.currentMood === 'losing'
+        ? [1, 0.875, 0.75, 0.875, 1, 1.125, 1] // Sad descending
+        : [1, 1.25, 1, 0.875, 1, 1.125, 1]; // Neutral wandering
+
+      const noteDuration = (0.5 / speedFactor);
+      
+      notes.forEach((ratio, idx) => {
+        const freq = baseFreq * ratio;
+        const startTime = this.audioContext!.currentTime + (idx * noteDuration);
+        
+        const osc = this.audioContext!.createOscillator();
+        const gain = this.audioContext!.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, startTime);
+        
+        osc.connect(gain);
+        gain.connect(this.audioContext!.destination);
+        
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(0.1, startTime + 0.05);
+        gain.gain.setValueAtTime(0.1, startTime + noteDuration - 0.1);
+        gain.gain.linearRampToValueAtTime(0, startTime + noteDuration);
+        
+        osc.start(startTime);
+        osc.stop(startTime + noteDuration + 0.1);
+        
+        this.musicOscillators.push(osc);
+      });
+
+      // Schedule next phrase (4 beats)
+      const totalPhraseDuration = notes.length * noteDuration + 0.5;
+      this.musicInterval = setTimeout(
+        () => playAdaptivePhrase(),
+        totalPhraseDuration * 1000
+      );
+    };
+
+    playAdaptivePhrase();
   }
 
   /**

@@ -161,6 +161,38 @@ export class WebSocketService {
   }
 
   /**
+   * Sync player profile with leaderboard after game ends
+   * Ensures displayName and photoUrl are persisted
+   */
+  syncPlayerProfile(): void {
+    const token = this.getStoredToken();
+    if (!token) return;
+    
+    fetch(`${environment.backendUrl}/score/me`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${token}` },
+    }).catch(err => {
+      console.warn('Failed to sync player profile to leaderboard:', err);
+    });
+  }
+
+  /**
+   * Get stored auth token from localStorage
+   */
+  private getStoredToken(): string | null {
+    try {
+      const stored = localStorage.getItem('reversi-auth');
+      if (stored) {
+        const auth = JSON.parse(stored);
+        return auth.token || null;
+      }
+    } catch (e) {
+      console.warn('Failed to retrieve stored token:', e);
+    }
+    return null;
+  }
+
+  /**
    * Set username
    */
   setUsername(username: string): void {
@@ -381,6 +413,9 @@ export class WebSocketService {
       this.ngZone.run(() => {
         // Game over is handled via gameState update
         console.log('Game over:', data);
+        
+        // Sync player profile to leaderboard
+        this.syncPlayerProfile();
       });
     });
 

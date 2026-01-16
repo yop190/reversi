@@ -86,6 +86,9 @@ export class AppComponent implements OnInit {
     // Initialize Google Sign-In
     this.auth.initializeGoogleSignIn();
     
+    // Start background music
+    this.sound.startBackgroundMusic();
+    
     // Connect to server on startup for multiplayer support (with auth token if available)
     const token = this.auth.getToken();
     if (token) {
