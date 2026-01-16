@@ -191,14 +191,26 @@ jobs:
       - name: Fetch Secrets from Azure Key Vault
         id: keyvault-secrets
         run: |
-          echo "🔐 Fetching secrets from Azure Key Vault..."
+          echo "🔐 Fetching secrets from Azure Key Vault: ${{ env.AZURE_KEY_VAULT_NAME }}"
           
-          # Fetch Google OAuth secrets (use the correct secret name)
+          # List available secrets for debugging
+          echo "📋 Available secrets in Key Vault:"
+          az keyvault secret list --vault-name ${{ env.AZURE_KEY_VAULT_NAME }} --query "[].name" -o tsv || echo "Could not list secrets"
+          
+          # Fetch Google OAuth secrets
+          echo "🔍 Fetching google-oauth-client-id..."
           GOOGLE_CLIENT_ID=$(az keyvault secret show \
             --vault-name ${{ env.AZURE_KEY_VAULT_NAME }} \
             --name "google-oauth-client-id" \
             --query "value" -o tsv 2>/dev/null || echo "")
           
+          if [ -n "$GOOGLE_CLIENT_ID" ]; then
+            echo "✅ google-oauth-client-id found"
+          else
+            echo "❌ google-oauth-client-id NOT found"
+          fi
+          
+          echo "🔍 Fetching google-oauth-client-secret..."
           GOOGLE_CLIENT_SECRET=$(az keyvault secret show \
             --vault-name ${{ env.AZURE_KEY_VAULT_NAME }} \
             --name "google-oauth-client-secret" \
