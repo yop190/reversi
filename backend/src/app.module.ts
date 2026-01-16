@@ -20,4 +20,4 @@ import { ScoreModule } from './score/score.module';
   controllers: [HealthController],
   providers: [GameGateway, RoomService, GameService, PlayerService],
 })
-export class AppModule {}
+export class AppModule { }
