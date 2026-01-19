@@ -34,6 +34,7 @@ import { AuthService } from './services/auth.service';
 import { I18nService } from './services/i18n.service';
 import { SoundService } from './services/sound.service';
 import { AdaptiveMusicService, GameMode as MusicGameMode } from './services/adaptive-music.service';
+import { MusicSettingsComponent } from './components/music-settings/music-settings.component';
 import { SkillLevel } from './models/game.types';
 
 type GameMode = 'menu' | 'single-player' | 'multiplayer' | 'leaderboard' | 'login';
@@ -59,7 +60,8 @@ type GameMode = 'menu' | 'single-player' | 'multiplayer' | 'leaderboard' | 'logi
     LeaderboardComponent,
     LoginComponent,
     LanguageSelectorComponent,
-    MusicToggleComponent
+    MusicToggleComponent,
+    MusicSettingsComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
@@ -80,6 +82,7 @@ export class AppComponent implements OnInit {
   gameMode = signal<GameMode>('menu');
   
   showAboutDialog = signal(false);
+  showMusicSettings = signal(false);
   isMobile = signal(window.innerWidth < 640);
   
   // Computed state for multiplayer

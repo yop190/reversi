@@ -136,10 +136,12 @@ export class AdaptiveMusicService {
   private loopInterval: number | null = null;
   
   // State signals
-  private _enabled = signal(this.loadMusicPreference());
+  // Default to false - music only starts after user explicitly enables it
+  private _enabled = signal(false);
   private _gameMode = signal<GameMode>(GameMode.Solo);
   private _masterVolume = signal(0.15); // Default master volume
   private _isPlaying = signal(false);
+  private _hasUserInteracted = signal(false);
   private _currentMood = signal<MusicState>(MusicState.Neutral);
   private _targetMood = signal<MusicState>(MusicState.Neutral);
   
@@ -217,8 +219,12 @@ export class AdaptiveMusicService {
 
   /**
    * Toggle music on/off
+   * First toggle initializes AudioContext (requires user gesture)
    */
   toggleMusic(): void {
+    // Mark that user has interacted (unlocks AudioContext)
+    this._hasUserInteracted.set(true);
+    
     const newValue = !this._enabled();
     this._enabled.set(newValue);
     this.saveMusicPreference(newValue);
@@ -292,10 +298,16 @@ export class AdaptiveMusicService {
 
   /**
    * Start playing music
+   * @param force - If true, starts even without prior user interaction (for auto-resume)
    */
-  async startMusic(): Promise<void> {
+  async startMusic(force = false): Promise<void> {
+    // Only start if enabled and user has interacted (AudioContext policy)
     if (!this._enabled()) return;
     if (this._isPlaying()) return;
+    if (!force && !this._hasUserInteracted()) {
+      // AudioContext requires user gesture - will start on first toggle
+      return;
+    }
     
     this.initAudioContext();
     if (!this.audioContext) return;

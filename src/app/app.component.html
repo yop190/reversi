@@ -46,6 +46,13 @@
             </button>
             <!-- Music Toggle -->
             <app-music-toggle variant="icon"></app-music-toggle>
+            <!-- Music Settings Button -->
+            <button mat-icon-button 
+                    (click)="showMusicSettings.set(!showMusicSettings())"
+                    matTooltip="Music Settings"
+                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+              <mat-icon>settings</mat-icon>
+            </button>
             @if (isAuthenticated()) {
               <div class="flex items-center gap-2">
                 @if (currentUser()?.photoUrl) {
@@ -110,6 +117,20 @@
             <span>{{ i18n.translate('leaderboard') }}</span>
           </button>
         </div>
+        
+        <!-- Music Settings Panel (overlay) -->
+        @if (showMusicSettings()) {
+          <div class="music-settings-overlay" (click)="showMusicSettings.set(false)">
+            <div class="music-settings-panel" (click)="$event.stopPropagation()">
+              <button mat-icon-button 
+                      class="close-button"
+                      (click)="showMusicSettings.set(false)">
+                <mat-icon>close</mat-icon>
+              </button>
+              <app-music-settings></app-music-settings>
+            </div>
+          </div>
+        }
         
         <!-- Connection Status -->
         <div class="connection-status">

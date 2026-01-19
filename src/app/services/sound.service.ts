@@ -665,6 +665,7 @@ export class SoundService {
       { freq: 164.81, start: 0.5, duration: 0.8 },     // E3
     ];
 
+    // Smooth playNote with longer attack and release for gentler sound
     const playNote = (freq: number, start: number, duration: number, volume: number, type: OscillatorType = 'triangle') => {
       const osc = this.audioContext!.createOscillator();
       const gain = this.audioContext!.createGain();
@@ -675,34 +676,35 @@ export class SoundService {
       osc.connect(gain);
       gain.connect(this.audioContext!.destination);
       
-      const attackTime = 0.02;
-      const releaseTime = duration * 0.3;
+      // Smoother envelope: longer attack and release for a gentler sound
+      const attackTime = 0.08;  // Increased from 0.02 for smoother fade-in
+      const releaseTime = Math.min(duration * 0.5, 0.3);  // Longer release
       
       gain.gain.setValueAtTime(0, this.audioContext!.currentTime + start);
-      gain.gain.linearRampToValueAtTime(volume, this.audioContext!.currentTime + start + attackTime);
-      gain.gain.setValueAtTime(volume, this.audioContext!.currentTime + start + duration - releaseTime);
-      gain.gain.linearRampToValueAtTime(0, this.audioContext!.currentTime + start + duration);
+      gain.gain.linearRampToValueAtTime(volume * 0.7, this.audioContext!.currentTime + start + attackTime);  // Softer peak
+      gain.gain.setValueAtTime(volume * 0.7, this.audioContext!.currentTime + start + duration - releaseTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext!.currentTime + start + duration);  // Exponential decay
       
       osc.start(this.audioContext!.currentTime + start);
-      osc.stop(this.audioContext!.currentTime + start + duration + 0.1);
+      osc.stop(this.audioContext!.currentTime + start + duration + 0.15);
     };
 
-    // Play melody (louder, square wave for that classic sound)
+    // Play melody (softer, triangle wave for gentler sound)
     melody.forEach(note => {
-      playNote(note.freq, note.start, note.duration, 0.2, 'square');
+      playNote(note.freq, note.start, note.duration, 0.15, 'triangle');  // Changed from square to triangle, reduced volume
     });
 
-    // Play harmony
+    // Play harmony (even softer)
     harmony.forEach(note => {
-      playNote(note.freq, note.start, note.duration, 0.12, 'triangle');
+      playNote(note.freq, note.start, note.duration, 0.08, 'sine');  // Changed to sine for smoothness
     });
 
-    // Play bass
+    // Play bass (gentle)
     bass.forEach(note => {
-      playNote(note.freq, note.start, note.duration, 0.15, 'sine');
+      playNote(note.freq, note.start, note.duration, 0.12, 'sine');
     });
 
-    // Add a final triumphant chord
+    // Add a final triumphant chord with smooth fade
     const finalChord = [523.25, 659.25, 783.99, 1046.50]; // C major spread
     finalChord.forEach((freq, i) => {
       const osc = this.audioContext!.createOscillator();
@@ -714,15 +716,16 @@ export class SoundService {
       osc.connect(gain);
       gain.connect(this.audioContext!.destination);
       
-      const startTime = 1.1 + (i * 0.02);
+      const startTime = 1.1 + (i * 0.03);  // Slightly more stagger
       
+      // Much smoother envelope for final chord
       gain.gain.setValueAtTime(0, this.audioContext!.currentTime + startTime);
-      gain.gain.linearRampToValueAtTime(0.15, this.audioContext!.currentTime + startTime + 0.1);
-      gain.gain.setValueAtTime(0.15, this.audioContext!.currentTime + startTime + 0.8);
-      gain.gain.linearRampToValueAtTime(0, this.audioContext!.currentTime + startTime + 1.5);
+      gain.gain.linearRampToValueAtTime(0.10, this.audioContext!.currentTime + startTime + 0.2);  // Slower attack
+      gain.gain.setValueAtTime(0.10, this.audioContext!.currentTime + startTime + 0.6);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.audioContext!.currentTime + startTime + 2.0);  // Longer, smoother fade
       
       osc.start(this.audioContext!.currentTime + startTime);
-      osc.stop(this.audioContext!.currentTime + startTime + 1.6);
+      osc.stop(this.audioContext!.currentTime + startTime + 2.1);
     });
   }
 }
