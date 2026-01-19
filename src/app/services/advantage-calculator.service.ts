@@ -139,7 +139,7 @@ export class AdvantageCalculatorService {
     const mobility = this.calculateMobility(board);
 
     // Calculate raw weighted score
-    let rawScore = 
+    const rawScore = 
       (config.discDifferenceWeight * discDifference) +
       (config.cornerControlWeight * cornerControl) +
       (config.mobilityWeight * mobility);
