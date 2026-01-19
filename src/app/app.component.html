@@ -33,10 +33,19 @@
   @if (gameMode() === 'menu') {
     <div class="flex-1 flex items-center justify-center p-4">
       <div class="mode-selection glass-card text-center">
-        <!-- Top bar: Language left, User info right -->
+        <!-- Top bar: Language left, Audio + User info right -->
         <div class="absolute top-4 left-4 right-4 flex items-center justify-between">
           <app-language-selector></app-language-selector>
           <div class="flex items-center gap-2">
+            <!-- Sound Toggle -->
+            <button mat-icon-button 
+                    (click)="sound.toggleSound()"
+                    [matTooltip]="sound.enabled() ? 'Mute sounds' : 'Enable sounds'"
+                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+              <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
+            </button>
+            <!-- Music Toggle -->
+            <app-music-toggle variant="icon"></app-music-toggle>
             @if (isAuthenticated()) {
               <div class="flex items-center gap-2">
                 @if (currentUser()?.photoUrl) {
@@ -179,13 +188,8 @@
                     class="!text-slate-300 hover:!text-white hover:!bg-white/10">
               <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
             </button>
-            <!-- Music Toggle -->
-            <button mat-icon-button 
-                    (click)="sound.toggleMusic()"
-                    [matTooltip]="sound.musicEnabled() ? 'Stop music' : 'Play music'"
-                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
-              <mat-icon>{{ sound.musicEnabled() ? 'music_note' : 'music_off' }}</mat-icon>
-            </button>
+            <!-- Adaptive Music Toggle -->
+            <app-music-toggle variant="icon"></app-music-toggle>
             <!-- Menu Component (game controls) -->
             <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
               (skillChange)="onSkillChange($event)"></app-menu>

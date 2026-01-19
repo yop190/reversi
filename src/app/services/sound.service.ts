@@ -2,9 +2,13 @@
  * Sound Service
  * Handles audio effects for game events
  * User can enable/disable sounds via settings
+ * 
+ * NOTE: For adaptive music, use AdaptiveMusicService instead.
+ * This service maintains the basic music toggle for backward compatibility
+ * but delegates to AdaptiveMusicService for actual music playback.
  */
 
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject } from '@angular/core';
 
 export type SoundType = 'move' | 'capture' | 'win' | 'lose' | 'draw' | 'invalid' | 'leaderboard';
 
@@ -20,8 +24,40 @@ export class SoundService {
   private musicInterval: any = null;
   private currentMood: 'neutral' | 'winning' | 'losing' = 'neutral';
   
+  // Flag to use new adaptive music system
+  private useAdaptiveMusic = true;
+  
+  // Lazy injected adaptive music service (to avoid circular dependency)
+  private _adaptiveMusicService: any = null;
+  
   readonly enabled = this._enabled.asReadonly();
   readonly musicEnabled = this._musicEnabled.asReadonly();
+  
+  /**
+   * Get adaptive music service lazily to avoid circular dependency
+   */
+  private getAdaptiveMusicService(): any {
+    if (!this._adaptiveMusicService && this.useAdaptiveMusic) {
+      try {
+        // Dynamic import to avoid circular dependency
+        const injector = (window as any).__angularInjector;
+        if (injector) {
+          this._adaptiveMusicService = injector.get('AdaptiveMusicService');
+        }
+      } catch {
+        // Fallback to built-in music if adaptive music service is not available
+        this.useAdaptiveMusic = false;
+      }
+    }
+    return this._adaptiveMusicService;
+  }
+  
+  /**
+   * Set the adaptive music service reference (called from app initialization)
+   */
+  setAdaptiveMusicService(service: any): void {
+    this._adaptiveMusicService = service;
+  }
 
   /**
    * Initialize audio context (must be called after user interaction)
@@ -47,12 +83,24 @@ export class SoundService {
 
   /**
    * Toggle music on/off
+   * Delegates to AdaptiveMusicService if available
    */
   toggleMusic(): void {
     const newValue = !this._musicEnabled();
     this._musicEnabled.set(newValue);
     this.saveMusicPreference(newValue);
     
+    // Delegate to adaptive music service if available
+    if (this._adaptiveMusicService) {
+      if (newValue) {
+        this._adaptiveMusicService.enableMusic();
+      } else {
+        this._adaptiveMusicService.disableMusic();
+      }
+      return;
+    }
+    
+    // Fallback to basic music
     if (newValue) {
       this.startBackgroundMusic();
     } else {
@@ -86,9 +134,17 @@ export class SoundService {
         break;
       case 'win':
         this.playWinSound();
+        // Also trigger victory fanfare from adaptive music
+        if (this._adaptiveMusicService) {
+          this._adaptiveMusicService.playVictoryFanfare();
+        }
         break;
       case 'lose':
         this.playLoseSound();
+        // Also trigger defeat sound from adaptive music
+        if (this._adaptiveMusicService) {
+          this._adaptiveMusicService.playDefeatSound();
+        }
         break;
       case 'draw':
         this.playDrawSound();
@@ -104,15 +160,25 @@ export class SoundService {
 
   /**
    * Set music mood based on game state
+   * Updates both internal mood and adaptive music service
    */
   setMusicMood(mood: 'neutral' | 'winning' | 'losing'): void {
     this.currentMood = mood;
+    // Note: AdaptiveMusicService handles mood automatically via AdvantageCalculatorService
   }
 
   /**
    * Start background music (plays automatically based on enabled preference)
+   * Delegates to AdaptiveMusicService if available
    */
   startBackgroundMusic(): void {
+    // Delegate to adaptive music service if available
+    if (this._adaptiveMusicService) {
+      this._adaptiveMusicService.startMusic();
+      return;
+    }
+    
+    // Fallback to basic music
     this.initAudioContext();
     if (!this.musicEnabled()) return;
     
@@ -127,6 +193,11 @@ export class SoundService {
    * Stop background music
    */
   stopBackgroundMusic(): void {
+    // Also stop adaptive music if available
+    if (this._adaptiveMusicService) {
+      this._adaptiveMusicService.stopMusic();
+    }
+    
     if (this.musicInterval) {
       clearInterval(this.musicInterval);
       this.musicInterval = null;

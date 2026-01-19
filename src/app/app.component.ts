@@ -5,6 +5,7 @@
  * 
  * Security: Requires Google OAuth 2.0 authentication for multiplayer
  * Localization: Supports EN, FR, NL, DA
+ * Audio: Features adaptive music system that responds to game state
  */
 
 import { Component, inject, signal, ViewChild, HostListener, OnInit, computed } from '@angular/core';
@@ -25,12 +26,14 @@ import { GameRoomComponent } from './components/game-room/game-room.component';
 import { LeaderboardComponent } from './components/leaderboard/leaderboard.component';
 import { LoginComponent } from './components/login/login.component';
 import { LanguageSelectorComponent } from './components/language-selector/language-selector.component';
+import { MusicToggleComponent } from './components/music-toggle/music-toggle.component';
 import { GameEngineService } from './services/game-engine.service';
 import { GameStateService } from './services/game-state.service';
 import { WebSocketService } from './services/websocket.service';
 import { AuthService } from './services/auth.service';
 import { I18nService } from './services/i18n.service';
 import { SoundService } from './services/sound.service';
+import { AdaptiveMusicService, GameMode as MusicGameMode } from './services/adaptive-music.service';
 import { SkillLevel } from './models/game.types';
 
 type GameMode = 'menu' | 'single-player' | 'multiplayer' | 'leaderboard' | 'login';
@@ -55,7 +58,8 @@ type GameMode = 'menu' | 'single-player' | 'multiplayer' | 'leaderboard' | 'logi
     GameRoomComponent,
     LeaderboardComponent,
     LoginComponent,
-    LanguageSelectorComponent
+    LanguageSelectorComponent,
+    MusicToggleComponent
   ],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
@@ -67,6 +71,7 @@ export class AppComponent implements OnInit {
   protected auth = inject(AuthService);
   protected i18n = inject(I18nService);
   protected sound = inject(SoundService);
+  protected adaptiveMusic = inject(AdaptiveMusicService);
   private snackBar = inject(MatSnackBar);
 
   @ViewChild(BoardComponent) boardComponent!: BoardComponent;
@@ -86,8 +91,11 @@ export class AppComponent implements OnInit {
     // Initialize Google Sign-In
     this.auth.initializeGoogleSignIn();
     
-    // Start background music
-    this.sound.startBackgroundMusic();
+    // Link SoundService to AdaptiveMusicService for integrated audio
+    this.sound.setAdaptiveMusicService(this.adaptiveMusic);
+    
+    // Start adaptive music (will only play if user preference is enabled)
+    this.adaptiveMusic.startMusic();
     
     // Connect to server on startup for multiplayer support (with auth token if available)
     const token = this.auth.getToken();
@@ -106,6 +114,8 @@ export class AppComponent implements OnInit {
   // Mode switching
   startSinglePlayer(): void {
     this.gameMode.set('single-player');
+    // Set music to solo mode for full adaptive feedback
+    this.adaptiveMusic.setGameMode(MusicGameMode.Solo);
     this.gameEngine.newGame();
   }
 
@@ -118,6 +128,34 @@ export class AppComponent implements OnInit {
       });
       return;
     }
+    
+    // Set music to multiplayer mode for subtle adaptation
+    this.adaptiveMusic.setGameMode(MusicGameMode.Multiplayer);
+    
+    // Reconnect with auth token
+    const token = this.auth.getToken();
+    if (token) {
+      this.ws.connect(token);
+    }
+    this.gameMode.set('multiplayer');
+  }
+  
+  /**
+   * Start competitive/tournament mode
+   * Music adaptation is disabled for fairness
+   */
+  startCompetitive(): void {
+    // Require authentication for competitive play
+    if (!this.isAuthenticated()) {
+      this.gameMode.set('login');
+      this.snackBar.open(this.i18n.t('auth.signInRequired'), 'OK', {
+        duration: 3000
+      });
+      return;
+    }
+    
+    // Set music to competitive mode (neutral only, no adaptation)
+    this.adaptiveMusic.setGameMode(MusicGameMode.Competitive);
     
     // Reconnect with auth token
     const token = this.auth.getToken();

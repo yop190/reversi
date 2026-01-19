@@ -28,38 +28,44 @@ This document describes the security architecture for the Reversi multiplayer ga
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              INTERNET                                        │
 │                                                                              │
-│  ┌──────────────┐         ┌──────────────┐         ┌──────────────────────┐ │
-│  │   Browser    │────────▶│   Cloudflare │────────▶│  Azure Container     │ │
-│  │   (SPA)      │  HTTPS  │   (DNS/CDN)  │  HTTPS  │  Apps Environment    │ │
-│  └──────────────┘         └──────────────┘         │                      │ │
-│        │                                           │  ┌────────────────┐  │ │
-│        │ OAuth                                     │  │   Frontend     │  │ │
-│        ▼                                           │  │   (Nginx)      │  │ │
-│  ┌──────────────┐                                  │  │   Port 80      │  │ │
-│  │   Google     │                                  │  └────────┬───────┘  │ │
-│  │   OAuth 2.0  │                                  │           │          │ │
-│  └──────────────┘                                  │           ▼          │ │
-│                                                    │  ┌────────────────┐  │ │
-│                                                    │  │   Backend      │  │ │
-│                                                    │  │   (NestJS)     │  │ │
-│                                                    │  │   Port 3001    │  │ │
-│                                                    │  │   + WebSocket  │  │ │
-│                                                    │  └────────┬───────┘  │ │
-│                                                    │           │          │ │
-│                                                    └───────────┼──────────┘ │
-│                                                                │            │
-└────────────────────────────────────────────────────────────────┼────────────┘
-                                                                 │
-                    ┌────────────────────────────────────────────┼────────────┐
-                    │                   AZURE                    │            │
-                    │                                            ▼            │
-                    │  ┌────────────────┐         ┌────────────────────────┐  │
-                    │  │  Azure Key     │────────▶│   Google Cloud         │  │
-                    │  │  Vault         │ Secrets │   Firestore            │  │
-                    │  │  (Secrets)     │         │   (Score Storage)      │  │
-                    │  └────────────────┘         └────────────────────────┘  │
-                    │                                                         │
-                    └─────────────────────────────────────────────────────────┘
+│  ┌──────────────┐         ┌──────────────┐                                  │
+│  │   Browser    │────────▶│   Cloudflare │                                  │
+│  │   (SPA)      │  HTTPS  │   (DNS/CDN)  │                                  │
+│  └──────────────┘         └──────┬───────┘                                  │
+│        │                         │                                          │
+│        │ OAuth                   │ HTTPS                                    │
+│        ▼                         │                                          │
+│  ┌──────────────┐                │                                          │
+│  │   Google     │                │                                          │
+│  │   OAuth 2.0  │                │                                          │
+│  └──────────────┘                │                                          │
+│                                  │                                          │
+└──────────────────────────────────┼──────────────────────────────────────────┘
+                                   │
+┌──────────────────────────────────┼──────────────────────────────────────────┐
+│                              AZURE│                                          │
+│                                  ▼                                          │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                    Azure Container Apps Environment                  │    │
+│  │                                                                      │    │
+│  │   ┌────────────────┐              ┌────────────────┐                │    │
+│  │   │   Frontend     │              │   Backend      │                │    │
+│  │   │   (Nginx)      │─────────────▶│   (NestJS)     │◀───┐           │    │
+│  │   │   Port 80      │              │   Port 3001    │    │           │    │
+│  │   │                │              │   + WebSocket  │    │           │    │
+│  │   └────────────────┘              └───────┬────────┘    │           │    │
+│  │                                           │             │           │    │
+│  └───────────────────────────────────────────┼─────────────┼───────────┘    │
+│                                              │             │                │
+│                                              ▼             │ Secrets        │
+│                                  ┌────────────────────┐    │                │
+│      ┌────────────────┐          │   Azure Table      │    │                │
+│      │  Azure Key     │          │   Storage          │    │                │
+│      │  Vault         │──────────┼───────────────────────▶─┘                │
+│      │  (Secrets)     │          │   (Leaderboard)    │                     │
+│      └────────────────┘          └────────────────────┘                     │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -78,7 +84,7 @@ This document describes the security architecture for the Reversi multiplayer ga
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Client  │     │  Google  │     │  Backend │     │ Firestore│
+│  Client  │     │  Google  │     │  Backend │     │Azure Tbl │
 └────┬─────┘     └────┬─────┘     └────┬─────┘     └────┬─────┘
      │                │                │                │
      │ 1. Click "Sign in with Google"  │                │
@@ -149,7 +155,7 @@ All secrets are stored in Azure Key Vault (`kv-reversi-prod`):
 | `google-oauth-client-id` | Google OAuth Client ID | Backend |
 | `google-oauth-client-secret` | Google OAuth Client Secret | Backend |
 | `jwt-secret` | JWT signing key | Backend |
-| `firebase-service-account` | Firebase/Firestore credentials | Backend |
+| `azure-storage-connection-string` | Azure Table Storage connection string | Backend |
 
 ### Secrets Flow
 
