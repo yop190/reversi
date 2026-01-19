@@ -9,6 +9,7 @@
  */
 
 import { Injectable, signal, inject } from '@angular/core';
+import { AdaptiveMusicService } from './adaptive-music.service';
 
 export type SoundType = 'move' | 'capture' | 'win' | 'lose' | 'draw' | 'invalid' | 'leaderboard';
 
@@ -24,40 +25,10 @@ export class SoundService {
   private musicInterval: any = null;
   private currentMood: 'neutral' | 'winning' | 'losing' = 'neutral';
 
-  // Flag to use new adaptive music system
-  private useAdaptiveMusic = true;
-
-  // Lazy injected adaptive music service (to avoid circular dependency)
-  private _adaptiveMusicService: any = null;
+  private adaptiveMusic = inject(AdaptiveMusicService);
 
   readonly enabled = this._enabled.asReadonly();
   readonly musicEnabled = this._musicEnabled.asReadonly();
-
-  /**
-   * Get adaptive music service lazily to avoid circular dependency
-   */
-  private getAdaptiveMusicService(): any {
-    if (!this._adaptiveMusicService && this.useAdaptiveMusic) {
-      try {
-        // Dynamic import to avoid circular dependency
-        const injector = (window as any).__angularInjector;
-        if (injector) {
-          this._adaptiveMusicService = injector.get('AdaptiveMusicService');
-        }
-      } catch {
-        // Fallback to built-in music if adaptive music service is not available
-        this.useAdaptiveMusic = false;
-      }
-    }
-    return this._adaptiveMusicService;
-  }
-
-  /**
-   * Set the adaptive music service reference (called from app initialization)
-   */
-  setAdaptiveMusicService(service: any): void {
-    this._adaptiveMusicService = service;
-  }
 
   /**
    * Initialize audio context (must be called after user interaction)
@@ -90,21 +61,11 @@ export class SoundService {
     this._musicEnabled.set(newValue);
     this.saveMusicPreference(newValue);
 
-    // Delegate to adaptive music service if available
-    if (this._adaptiveMusicService) {
-      if (newValue) {
-        this._adaptiveMusicService.enableMusic();
-      } else {
-        this._adaptiveMusicService.disableMusic();
-      }
-      return;
-    }
-
-    // Fallback to basic music
+    // Delegate to adaptive music service
     if (newValue) {
-      this.startBackgroundMusic();
+      this.adaptiveMusic.enableMusic();
     } else {
-      this.stopBackgroundMusic();
+      this.adaptiveMusic.disableMusic();
     }
   }
 
@@ -135,16 +96,12 @@ export class SoundService {
       case 'win':
         this.playWinSound();
         // Also trigger victory fanfare from adaptive music
-        if (this._adaptiveMusicService) {
-          this._adaptiveMusicService.playVictoryFanfare();
-        }
+        this.adaptiveMusic.playVictoryFanfare();
         break;
       case 'lose':
         this.playLoseSound();
         // Also trigger defeat sound from adaptive music
-        if (this._adaptiveMusicService) {
-          this._adaptiveMusicService.playDefeatSound();
-        }
+        this.adaptiveMusic.playDefeatSound();
         break;
       case 'draw':
         this.playDrawSound();
@@ -172,31 +129,19 @@ export class SoundService {
    * Delegates to AdaptiveMusicService if available
    */
   startBackgroundMusic(): void {
-    // Delegate to adaptive music service if available
-    if (this._adaptiveMusicService) {
-      this._adaptiveMusicService.startMusic();
-      return;
-    }
-
-    // Fallback to basic music
-    this.initAudioContext();
+    // Adaptive music is the primary system
     if (!this.musicEnabled()) return;
-
-    // Stop existing music first
-    this.stopBackgroundMusic();
-
-    // Start new background music loop
-    this.playLoopingBackgroundMusic();
+    this.adaptiveMusic.enableMusic();
+    // StartMusic will run after first user gesture (see AdaptiveMusicService unlock)
+    void this.adaptiveMusic.startMusic(false);
   }
 
   /**
    * Stop background music
    */
   stopBackgroundMusic(): void {
-    // Also stop adaptive music if available
-    if (this._adaptiveMusicService) {
-      this._adaptiveMusicService.stopMusic();
-    }
+    // Also stop adaptive music
+    this.adaptiveMusic.stopMusic();
 
     if (this.musicInterval) {
       clearInterval(this.musicInterval);

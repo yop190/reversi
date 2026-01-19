@@ -133,17 +133,28 @@ export class AdaptiveMusicService {
 
     // Audio context and nodes
     private audioContext: AudioContext | null = null;
+    private musicBusGain: GainNode | null = null;
     private masterGain: GainNode | null = null;
     private lowpassFilter: BiquadFilterNode | null = null;
+    private masterCompressor: DynamicsCompressorNode | null = null;
+    private masterLimiter: DynamicsCompressorNode | null = null;
+    private reverbNode: ConvolverNode | null = null;
+    private reverbSendGain: GainNode | null = null;
+    private reverbReturnGain: GainNode | null = null;
+    private delayNode: DelayNode | null = null;
+    private delaySendGain: GainNode | null = null;
+    private delayFeedbackGain: GainNode | null = null;
 
     // Active oscillators and scheduled events
     private activeOscillators: OscillatorNode[] = [];
+    private oscillatorGains = new WeakMap<OscillatorNode, GainNode>();
     private scheduledTimeouts: number[] = [];
     private loopInterval: number | null = null;
+    private barIndex = 0;
 
     // State signals
     // Default to false - music only starts after user explicitly enables it
-    private _enabled = signal(false);
+    private _enabled = signal(this.loadMusicPreference());
     private _gameMode = signal<GameMode>(GameMode.Solo);
     private _masterVolume = signal(0.15); // Default master volume
     private _isPlaying = signal(false);
@@ -165,6 +176,9 @@ export class AdaptiveMusicService {
     private crossfadeStartTime = 0;
     private readonly CROSSFADE_DURATION = 1.5; // Faster transition for noticeable change
 
+    private readonly NOTE_FADE_TIME = 0.06;
+    private readonly DEBUG = false;
+
     // Public readonly signals
     readonly enabled = this._enabled.asReadonly();
     readonly gameMode = this._gameMode.asReadonly();
@@ -173,6 +187,8 @@ export class AdaptiveMusicService {
     readonly currentMood = computed(() => this._currentMood());
 
     constructor() {
+        this.setupUserGestureUnlock();
+
         // Set up effect to react to advantage changes
         effect(() => {
             const musicState = this.advantageCalculator.musicState();
@@ -182,6 +198,23 @@ export class AdaptiveMusicService {
         });
     }
 
+    private setupUserGestureUnlock(): void {
+        const unlock = () => {
+            if (this._hasUserInteracted()) return;
+            this._hasUserInteracted.set(true);
+            if (this._enabled() && !this._isPlaying()) {
+                void this.startMusic();
+            }
+            window.removeEventListener('pointerdown', unlock, true);
+            window.removeEventListener('keydown', unlock, true);
+            window.removeEventListener('touchstart', unlock, true);
+        };
+
+        window.addEventListener('pointerdown', unlock, true);
+        window.addEventListener('keydown', unlock, true);
+        window.addEventListener('touchstart', unlock, true);
+    }
+
     /**
      * Initialize audio context (must be called after user interaction)
      */
@@ -189,6 +222,10 @@ export class AdaptiveMusicService {
         if (!this.audioContext) {
             try {
                 this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+                // Music bus (all sources route here)
+                this.musicBusGain = this.audioContext.createGain();
+                this.musicBusGain.gain.value = 1.0;
 
                 // Create master gain node
                 this.masterGain = this.audioContext.createGain();
@@ -200,14 +237,84 @@ export class AdaptiveMusicService {
                 this.lowpassFilter.frequency.value = 2000;
                 this.lowpassFilter.Q.value = 0.5;
 
-                // Connect chain: sources -> filter -> master gain -> destination
-                this.lowpassFilter.connect(this.masterGain);
+                // Glue compressor
+                this.masterCompressor = this.audioContext.createDynamicsCompressor();
+                this.masterCompressor.threshold.value = -22;
+                this.masterCompressor.knee.value = 18;
+                this.masterCompressor.ratio.value = 3;
+                this.masterCompressor.attack.value = 0.008;
+                this.masterCompressor.release.value = 0.18;
+
+                // Soft limiter
+                this.masterLimiter = this.audioContext.createDynamicsCompressor();
+                this.masterLimiter.threshold.value = -7;
+                this.masterLimiter.knee.value = 0;
+                this.masterLimiter.ratio.value = 20;
+                this.masterLimiter.attack.value = 0.002;
+                this.masterLimiter.release.value = 0.08;
+
+                // Reverb
+                this.reverbNode = this.audioContext.createConvolver();
+                this.reverbNode.buffer = this.generateImpulseResponse(2.2);
+                this.reverbSendGain = this.audioContext.createGain();
+                this.reverbSendGain.gain.value = 0.08;
+                this.reverbReturnGain = this.audioContext.createGain();
+                this.reverbReturnGain.gain.value = 0.32;
+
+                // Delay
+                this.delayNode = this.audioContext.createDelay(1.0);
+                this.delayNode.delayTime.value = 0.18;
+                this.delaySendGain = this.audioContext.createGain();
+                this.delaySendGain.gain.value = 0.06;
+                this.delayFeedbackGain = this.audioContext.createGain();
+                this.delayFeedbackGain.gain.value = 0.22;
+
+                // Dry routing: bus -> filter -> compressor -> limiter -> master -> destination
+                this.musicBusGain.connect(this.lowpassFilter);
+                this.lowpassFilter.connect(this.masterCompressor);
+                this.masterCompressor.connect(this.masterLimiter);
+                this.masterLimiter.connect(this.masterGain);
                 this.masterGain.connect(this.audioContext.destination);
+
+                // FX sends from bus
+                this.musicBusGain.connect(this.reverbSendGain);
+                this.reverbSendGain.connect(this.reverbNode);
+                this.reverbNode.connect(this.reverbReturnGain);
+                this.reverbReturnGain.connect(this.masterCompressor);
+
+                this.musicBusGain.connect(this.delaySendGain);
+                this.delaySendGain.connect(this.delayNode);
+                this.delayNode.connect(this.delayFeedbackGain);
+                this.delayFeedbackGain.connect(this.delayNode);
+                this.delayNode.connect(this.masterCompressor);
 
             } catch (e) {
                 console.warn('Web Audio API not supported:', e);
             }
         }
+    }
+
+    private generateImpulseResponse(durationSeconds: number): AudioBuffer {
+        if (!this.audioContext) {
+            throw new Error('AudioContext not initialized');
+        }
+
+        const sampleRate = this.audioContext.sampleRate;
+        const length = Math.floor(sampleRate * durationSeconds);
+        const impulse = this.audioContext.createBuffer(2, length, sampleRate);
+
+        for (let channel = 0; channel < impulse.numberOfChannels; channel++) {
+            const channelData = impulse.getChannelData(channel);
+            for (let i = 0; i < length; i++) {
+                const t = i / length;
+                const decay = Math.pow(1 - t, 3.2);
+                const noise = (Math.random() * 2 - 1) * decay;
+                const early = i < sampleRate * 0.03 ? noise * 1.8 : noise;
+                channelData[i] = early;
+            }
+        }
+
+        return impulse;
     }
 
     /**
@@ -416,9 +523,10 @@ export class AdaptiveMusicService {
             this.playNote(accentNote, 0, 0.25, baseVolume * 0.9, 'sine');
         }
 
-        // Debug output for music development
-        const moodEmoji = normalizedScore > 0.6 ? '🎵✨' : normalizedScore < 0.4 ? '🎵🌙' : '🎵';
-        console.debug(`${moodEmoji} Music accent: advantage=${(advantageScore * 100).toFixed(0)}%, note=${accentNote.toFixed(0)}Hz`);
+        if (this.DEBUG) {
+            const moodEmoji = normalizedScore > 0.6 ? '🎵✨' : normalizedScore < 0.4 ? '🎵🌙' : '🎵';
+            console.debug(`${moodEmoji} Music accent: advantage=${(advantageScore * 100).toFixed(0)}%, note=${accentNote.toFixed(0)}Hz`);
+        }
     }
 
     /**
@@ -497,17 +605,21 @@ export class AdaptiveMusicService {
     private startMusicLoop(): void {
         if (!this.audioContext) return;
 
+        this.barIndex = 0;
+
         // Start continuous arpeggio loop
         this.scheduleArpeggio(0);
 
         // Start continuous pad drone
-        this.schedulePadDrone();
+        this.schedulePadDrone(0);
 
         // Schedule next arpeggio cycles - shorter intervals for continuous feel
         const cycleTime = BEAT_DURATION * 4 * 1000; // One bar cycle
         this.loopInterval = window.setInterval(() => {
             if (this._isPlaying()) {
+                this.barIndex += 1;
                 this.scheduleArpeggio(0);
+                this.schedulePadDrone(0);
             }
         }, cycleTime);
     }
@@ -525,76 +637,99 @@ export class AdaptiveMusicService {
         // Update filter for continuous tonal change
         this.updateFilterForMood(advantageScore);
 
-        // Get chord notes based on mood
-        const chordNotes = this.getArpeggioNotes(normalizedScore);
+        const chord = this.getChordForCurrentBar(normalizedScore);
+        const pool = this.buildArpeggioPool(chord, normalizedScore);
 
-        // Arpeggio speed adapts to mood: slower when losing, faster when winning
-        const noteInterval = 0.25 + (1 - normalizedScore) * 0.15; // 0.25s to 0.40s per note
+        const step = BAR_DURATION / 16; // 16th grid
+        const swing = 0.02 + normalizedScore * 0.03; // 20–50ms-ish micro swing
 
         // Volume adapts
-        const baseVolume = this._layerVolumes()[MusicLayer.Melody] * 0.08;
-        const volume = baseVolume * (0.5 + normalizedScore * 0.6);
+        const baseVolume = this._layerVolumes()[MusicLayer.Melody] * 0.085;
+        const volume = baseVolume * (0.55 + normalizedScore * 0.55);
 
-        // Play continuous 16-note arpeggio pattern (one bar)
+        // 2 motifs, swapped every 2 bars + mood tint
+        const motifA = [0, 2, 1, 2, 3, 2, 1, 2, 0, 2, 1, 2, 4, 3, 2, 1];
+        const motifB = [0, 1, 2, 1, 3, 2, 3, 4, 0, 1, 2, 3, 4, 3, 2, 1];
+        const motif = (this.barIndex % 4) < 2 ? motifA : motifB;
+
+        // More sparkle when winning, more calm when losing
+        const leadType: OscillatorType = normalizedScore > 0.67 ? 'triangle' : normalizedScore < 0.33 ? 'sine' : 'triangle';
+        const octaveBoost = normalizedScore > 0.67 ? 2 : 1;
+
         for (let i = 0; i < 16; i++) {
-            const noteIndex = i % chordNotes.length;
-            const octaveShift = Math.floor(i / chordNotes.length) % 2; // Alternate octaves
-            const note = chordNotes[noteIndex] * (octaveShift === 1 ? 2 : 1);
+            const idx = motif[i] % pool.length;
+            let note = pool[idx];
 
-            const delay = startOffset + i * noteInterval;
-            const duration = noteInterval * 1.5; // Overlap notes for smoothness
+            // occasional octave lift on phrase ends
+            if ((i === 7 || i === 15) && normalizedScore > 0.55) {
+                note *= octaveBoost;
+            }
 
-            this.playNote(note, delay, duration, volume * 0.7, 'sine');
+            const micro = (i % 2 === 1) ? swing : 0;
+            const delay = startOffset + i * step + micro;
+            const duration = step * 1.65;
+
+            // Add a few rests to breathe (esp. losing)
+            const restChance = normalizedScore < 0.33 ? 0.22 : normalizedScore > 0.67 ? 0.08 : 0.14;
+            if (this.pseudoRand(this.barIndex * 1000 + i) < restChance && (i % 4 !== 0)) {
+                continue;
+            }
+
+            this.playNote(note, delay, duration, volume, leadType);
         }
     }
 
-    /**
-     * Get arpeggio notes based on mood score
-     */
-    private getArpeggioNotes(normalizedScore: number): number[] {
-        if (normalizedScore < 0.35) {
-            // Minor feel - melancholic but beautiful
-            return [NOTES.A3, NOTES.C4, NOTES.E4, NOTES.A4, NOTES.C5, NOTES.E5];
-        } else if (normalizedScore > 0.65) {
-            // Major bright - triumphant
-            return [NOTES.C4, NOTES.E4, NOTES.G4, NOTES.C5, NOTES.E5, NOTES.G5];
-        } else {
-            // Suspended/ambiguous - contemplative
-            return [NOTES.C4, NOTES.D4, NOTES.G4, NOTES.C5, NOTES.D5, NOTES.G5];
-        }
+    private getChordForCurrentBar(normalizedScore: number): number[] {
+        const moodKey = normalizedScore < 0.35 ? 'losing' : normalizedScore > 0.65 ? 'winning' : 'neutral';
+        const progression = (CHORD_PROGRESSIONS as any)[moodKey] as number[][];
+        const chordIndex = this.barIndex % progression.length;
+        return progression[chordIndex];
+    }
+
+    private buildArpeggioPool(chord: number[], normalizedScore: number): number[] {
+        const triad = chord.slice(0, 3);
+        const up = triad.map(n => n * 2);
+        // Add a gentle color tone in neutral/winning (keeps it “gamey” and catchy)
+        const color = normalizedScore > 0.55 ? [NOTES.A4, NOTES.D5] : normalizedScore > 0.35 ? [NOTES.D5] : [];
+        return [...triad, ...up, ...color];
+    }
+
+    private pseudoRand(seed: number): number {
+        // Deterministic 0..1 for scheduling decisions
+        const x = Math.sin(seed * 12.9898) * 43758.5453;
+        return x - Math.floor(x);
     }
 
     /**
      * Schedule continuous pad drone for warmth
      */
-    private schedulePadDrone(): void {
+    private schedulePadDrone(startOffset: number): void {
         if (!this.audioContext || !this._isPlaying()) return;
 
         const advantageScore = this.advantageCalculator.advantageScore();
         const normalizedScore = (advantageScore + 1) / 2;
 
-        const baseVolume = this._layerVolumes()[MusicLayer.Harmony] * 0.05;
-        const volume = baseVolume * (0.4 + normalizedScore * 0.4);
+        const baseVolume = this._layerVolumes()[MusicLayer.Harmony] * 0.055;
+        const volume = baseVolume * (0.5 + normalizedScore * 0.45);
 
-        // Long sustained bass note
-        let bassNote: number;
-        if (normalizedScore < 0.35) {
-            bassNote = NOTES.A2; // A minor root
-        } else if (normalizedScore > 0.65) {
-            bassNote = NOTES.C3; // C major root
-        } else {
-            bassNote = NOTES.G2; // G suspended root
-        }
+        // Follow the same chord progression as the arpeggio
+        const chord = this.getChordForCurrentBar(normalizedScore);
 
-        // Play long sustained bass drone (4 bars)
-        this.playNote(bassNote, 0, BAR_DURATION * 4, volume, 'sine');
+        // Build a warm pad: root (down octave) + 5th + 3rd, plus octave
+        const root = chord[0];
+        const third = chord[1];
+        const fifth = chord[2];
 
-        // Schedule next drone
-        setTimeout(() => {
-            if (this._isPlaying()) {
-                this.schedulePadDrone();
-            }
-        }, BAR_DURATION * 3.5 * 1000); // Overlap for seamless transition
+        const padNotes = [root / 2, root, fifth, third, root * 2];
+
+        // 2-bar pad with overlap (re-scheduled each bar)
+        const dur = BAR_DURATION * 2.2;
+        const padType: OscillatorType = normalizedScore > 0.65 ? 'triangle' : normalizedScore < 0.35 ? 'sine' : 'triangle';
+
+        padNotes.forEach((n, i) => {
+            const v = volume * (i === 0 ? 0.8 : 0.55);
+            this.playNote(n, startOffset, dur, v, padType);
+        });
     }
 
     /**
@@ -655,19 +790,42 @@ export class AdaptiveMusicService {
         volume: number,
         type: OscillatorType = 'sine'
     ): void {
-        if (!this.audioContext || !this.lowpassFilter) return;
+        if (!this.audioContext || !this.musicBusGain) return;
 
-        const osc = this.audioContext.createOscillator();
         const gain = this.audioContext.createGain();
 
-        osc.type = type;
-        osc.frequency.value = frequency;
+        // Slightly richer timbre without getting harsh
+        const oscA = this.audioContext.createOscillator();
+        const oscB = this.audioContext.createOscillator();
+        oscA.type = type;
+        oscB.type = type;
+        oscA.frequency.value = frequency;
+        oscB.frequency.value = frequency;
 
-        // Add slight detune for warmth and thickness
-        osc.detune.value = (Math.random() - 0.5) * 8;
+        // Gentle detune for width/thickness
+        const detuneAmount = 6;
+        oscA.detune.value = (Math.random() - 0.5) * detuneAmount;
+        oscB.detune.value = -oscA.detune.value;
 
-        osc.connect(gain);
-        gain.connect(this.lowpassFilter);
+        // Subtle vibrato on mid/high notes (more "alive" / less beep)
+        if (frequency >= NOTES.C4) {
+            const lfo = this.audioContext.createOscillator();
+            const lfoGain = this.audioContext.createGain();
+            lfo.type = 'sine';
+            lfo.frequency.value = 5.3;
+            lfoGain.gain.value = 4.5;
+            lfo.connect(lfoGain);
+            lfoGain.connect(oscA.frequency);
+            lfoGain.connect(oscB.frequency);
+
+            const lfoStart = this.audioContext.currentTime + startOffset;
+            lfo.start(lfoStart);
+            lfo.stop(lfoStart + duration + 0.2);
+        }
+
+        oscA.connect(gain);
+        oscB.connect(gain);
+        gain.connect(this.musicBusGain);
 
         const startTime = this.audioContext.currentTime + startOffset;
 
@@ -684,17 +842,18 @@ export class AdaptiveMusicService {
         gain.gain.setValueAtTime(volume * sustainLevel, startTime + duration - releaseTime);
         gain.gain.linearRampToValueAtTime(0, startTime + duration);
 
-        osc.start(startTime);
-        osc.stop(startTime + duration + 0.15);
+        oscA.start(startTime);
+        oscB.start(startTime);
+        oscA.stop(startTime + duration + 0.15);
+        oscB.stop(startTime + duration + 0.15);
 
-        this.activeOscillators.push(osc);
+        this.activeOscillators.push(oscA, oscB);
+        this.oscillatorGains.set(oscA, gain);
+        this.oscillatorGains.set(oscB, gain);
 
         // Clean up oscillator after it stops
         const cleanupId = window.setTimeout(() => {
-            const index = this.activeOscillators.indexOf(osc);
-            if (index > -1) {
-                this.activeOscillators.splice(index, 1);
-            }
+            this.activeOscillators = this.activeOscillators.filter(o => o !== oscA && o !== oscB);
         }, (startOffset + duration + 0.2) * 1000);
 
         this.scheduledTimeouts.push(cleanupId);
@@ -712,7 +871,7 @@ export class AdaptiveMusicService {
         frequencies.forEach((freq, index) => {
             // Slight stagger for natural feel
             const stagger = index * 0.015;
-            this.playNote(freq, startOffset + stagger, duration, volumePerNote, 'sine');
+            this.playNote(freq, startOffset + stagger, duration, volumePerNote, 'triangle');
         });
     }
 
@@ -723,14 +882,17 @@ export class AdaptiveMusicService {
         if (!this.audioContext) return;
 
         const currentTime = this.audioContext.currentTime;
-        const fadeTime = fade ? 0.5 : 0;
+        const fadeTime = fade ? 0.35 : 0;
 
         this.activeOscillators.forEach(osc => {
             try {
                 if (fade) {
-                    // Fade out
-                    const gain = osc.connect(this.audioContext!.createGain());
-                    // Already connected, just stop
+                    const gain = this.oscillatorGains.get(osc);
+                    if (gain) {
+                        gain.gain.cancelScheduledValues(currentTime);
+                        gain.gain.setValueAtTime(gain.gain.value, currentTime);
+                        gain.gain.linearRampToValueAtTime(0, currentTime + fadeTime);
+                    }
                 }
                 osc.stop(currentTime + fadeTime);
             } catch (e) {
@@ -772,6 +934,25 @@ export class AdaptiveMusicService {
         this.lowpassFilter.Q.cancelScheduledValues(currentTime);
         this.lowpassFilter.Q.setValueAtTime(this.lowpassFilter.Q.value, currentTime);
         this.lowpassFilter.Q.linearRampToValueAtTime(targetQ, currentTime + 0.3);
+
+        // Subtle ambience: a bit more space when losing, slightly drier when winning
+        if (this.reverbSendGain && this.delaySendGain) {
+            const losingAmount = Math.max(0, -advantageScore);
+            const winningAmount = Math.max(0, advantageScore);
+
+            const reverbTarget = 0.06 + losingAmount * 0.14 - winningAmount * 0.04;
+            const delayTarget = 0.04 + losingAmount * 0.08 - winningAmount * 0.02;
+
+            const clamp = (v: number) => Math.max(0, Math.min(0.25, v));
+
+            this.reverbSendGain.gain.cancelScheduledValues(currentTime);
+            this.reverbSendGain.gain.setValueAtTime(this.reverbSendGain.gain.value, currentTime);
+            this.reverbSendGain.gain.linearRampToValueAtTime(clamp(reverbTarget), currentTime + 0.6);
+
+            this.delaySendGain.gain.cancelScheduledValues(currentTime);
+            this.delaySendGain.gain.setValueAtTime(this.delaySendGain.gain.value, currentTime);
+            this.delaySendGain.gain.linearRampToValueAtTime(clamp(delayTarget), currentTime + 0.6);
+        }
     }
 
     /**
@@ -802,7 +983,9 @@ export class AdaptiveMusicService {
         }
 
         // Debug: show advantage score and mood
-        console.log(`${moodName} | Advantage: ${(advantageScore * 100).toFixed(0)}% | Filter: ${this.lowpassFilter?.frequency.value.toFixed(0)}Hz`);
+        if (this.DEBUG) {
+            console.log(`${moodName} | Advantage: ${(advantageScore * 100).toFixed(0)}% | Filter: ${this.lowpassFilter?.frequency.value.toFixed(0)}Hz`);
+        }
 
         return {
             state,

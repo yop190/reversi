@@ -94,9 +94,6 @@ export class AppComponent implements OnInit {
     // Initialize Google Sign-In
     this.auth.initializeGoogleSignIn();
 
-    // Link SoundService to AdaptiveMusicService for integrated audio
-    this.sound.setAdaptiveMusicService(this.adaptiveMusic);
-
     // Start adaptive music (will only play if user preference is enabled)
     this.adaptiveMusic.startMusic();
 
