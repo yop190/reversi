@@ -10,12 +10,12 @@
 
 // Services
 export { AdaptiveMusicService, GameMode, MusicLayer } from './adaptive-music.service';
-export { 
-  AdvantageCalculatorService, 
-  MusicState, 
-  GamePhase,
-  type AdvantageMetrics,
-  type AdvantageConfig 
+export {
+    AdvantageCalculatorService,
+    MusicState,
+    GamePhase,
+    type AdvantageMetrics,
+    type AdvantageConfig
 } from './advantage-calculator.service';
 
 // Re-export for convenience

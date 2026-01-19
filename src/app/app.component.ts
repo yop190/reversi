@@ -80,11 +80,11 @@ export class AppComponent implements OnInit {
 
   // Game mode: menu, single-player, or multiplayer
   gameMode = signal<GameMode>('menu');
-  
+
   showAboutDialog = signal(false);
   showMusicSettings = signal(false);
   isMobile = signal(window.innerWidth < 640);
-  
+
   // Computed state for multiplayer
   readonly isInRoom = computed(() => this.ws.isInRoom());
   readonly isAuthenticated = computed(() => this.auth.isAuthenticated());
@@ -93,20 +93,15 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
     // Initialize Google Sign-In
     this.auth.initializeGoogleSignIn();
-    
+
     // Link SoundService to AdaptiveMusicService for integrated audio
     this.sound.setAdaptiveMusicService(this.adaptiveMusic);
-    
+
     // Start adaptive music (will only play if user preference is enabled)
     this.adaptiveMusic.startMusic();
-    
-    // Connect to server on startup for multiplayer support (with auth token if available)
-    const token = this.auth.getToken();
-    if (token) {
-      this.ws.connect(token);
-    } else {
-      this.ws.connect();
-    }
+
+    // Don't auto-connect to WebSocket server on startup
+    // WebSocket connection happens when user enters multiplayer mode
   }
 
   @HostListener('window:resize')
@@ -131,10 +126,10 @@ export class AppComponent implements OnInit {
       });
       return;
     }
-    
+
     // Set music to multiplayer mode for subtle adaptation
     this.adaptiveMusic.setGameMode(MusicGameMode.Multiplayer);
-    
+
     // Reconnect with auth token
     const token = this.auth.getToken();
     if (token) {
@@ -142,7 +137,7 @@ export class AppComponent implements OnInit {
     }
     this.gameMode.set('multiplayer');
   }
-  
+
   /**
    * Start competitive/tournament mode
    * Music adaptation is disabled for fairness
@@ -156,10 +151,10 @@ export class AppComponent implements OnInit {
       });
       return;
     }
-    
+
     // Set music to competitive mode (neutral only, no adaptation)
     this.adaptiveMusic.setGameMode(MusicGameMode.Competitive);
-    
+
     // Reconnect with auth token
     const token = this.auth.getToken();
     if (token) {

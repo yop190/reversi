@@ -27,14 +27,14 @@ export interface Translations {
   // App
   appTitle: string;
   appSubtitle: string;
-  
+
   // Authentication
   signIn: string;
   signInWithGoogle: string;
   signOut: string;
   signInRequired: string;
   welcomeBack: string;
-  
+
   // Menu
   game: string;
   newGame: string;
@@ -43,7 +43,7 @@ export interface Translations {
   about: string;
   settings: string;
   language: string;
-  
+
   // Difficulty
   difficulty: string;
   beginner: string;
@@ -54,14 +54,14 @@ export interface Translations {
   medium: string;
   hard: string;
   veryHard: string;
-  
+
   // Game Mode
   singlePlayer: string;
   multiplayer: string;
   playVsComputer: string;
   playOnline: string;
   backToMenu: string;
-  
+
   // Game Status
   yourTurn: string;
   opponentsTurn: string;
@@ -73,7 +73,7 @@ export interface Translations {
   blackWins: string;
   whiteWins: string;
   score: string;
-  
+
   // Multiplayer
   lobby: string;
   createRoom: string;
@@ -116,7 +116,7 @@ export interface Translations {
   you: string;
   black: string;
   white: string;
-  
+
   // Leaderboard
   leaderboard: string;
   rank: string;
@@ -126,20 +126,20 @@ export interface Translations {
   totalGames: string;
   winRate: string;
   yourRank: string;
-  
+
   // About
   aboutTitle: string;
   aboutDescription: string;
   version: string;
   credits: string;
-  
+
   // Errors
   errorOccurred: string;
   connectionError: string;
   authenticationError: string;
   invalidMove: string;
   tryAgain: string;
-  
+
   // Common
   ok: string;
   cancel: string;
@@ -148,7 +148,7 @@ export interface Translations {
   refresh: string;
   play: string;
   restart: string;
-  
+
   // Music
   musicSettings: string;
   adaptiveMusic: string;
@@ -187,13 +187,13 @@ export interface Translations {
 const EN_TRANSLATIONS: Translations = {
   appTitle: 'Reversi',
   appSubtitle: 'The Classic Strategy Game',
-  
+
   signIn: 'Sign In',
   signInWithGoogle: 'Sign in with Google',
   signOut: 'Sign Out',
   signInRequired: 'Please sign in to continue',
   welcomeBack: 'Welcome back',
-  
+
   game: 'Game',
   newGame: 'New Game',
   hint: 'Hint',
@@ -201,7 +201,7 @@ const EN_TRANSLATIONS: Translations = {
   about: 'About',
   settings: 'Settings',
   language: 'Language',
-  
+
   difficulty: 'Difficulty',
   beginner: 'Beginner',
   novice: 'Novice',
@@ -211,13 +211,13 @@ const EN_TRANSLATIONS: Translations = {
   medium: 'Medium',
   hard: 'Hard',
   veryHard: 'Very Hard',
-  
+
   singlePlayer: 'Single Player',
   multiplayer: 'Multiplayer',
   playVsComputer: 'Play vs Computer',
   playOnline: 'Play Online',
   backToMenu: 'Back to Menu',
-  
+
   yourTurn: 'Your Turn',
   opponentsTurn: "Opponent's Turn",
   thinking: 'Thinking...',
@@ -228,7 +228,7 @@ const EN_TRANSLATIONS: Translations = {
   blackWins: 'Black Wins!',
   whiteWins: 'White Wins!',
   score: 'Score',
-  
+
   lobby: 'Lobby',
   createRoom: 'Create Room',
   joinRoom: 'Join Room',
@@ -270,7 +270,7 @@ const EN_TRANSLATIONS: Translations = {
   you: 'You',
   black: 'Black',
   white: 'White',
-  
+
   leaderboard: 'Leaderboard',
   rank: 'Rank',
   wins: 'Wins',
@@ -279,18 +279,18 @@ const EN_TRANSLATIONS: Translations = {
   totalGames: 'Total Games',
   winRate: 'Win Rate',
   yourRank: 'Your Rank',
-  
+
   aboutTitle: 'About Reversi',
   aboutDescription: 'A modern implementation of the classic Reversi/Othello game. Challenge the computer or play online with friends!',
   version: 'Version',
   credits: 'Credits',
-  
+
   errorOccurred: 'An error occurred',
   connectionError: 'Connection error',
   authenticationError: 'Authentication failed',
   invalidMove: 'Invalid move',
   tryAgain: 'Try again',
-  
+
   ok: 'OK',
   cancel: 'Cancel',
   close: 'Close',
@@ -298,7 +298,7 @@ const EN_TRANSLATIONS: Translations = {
   refresh: 'Refresh',
   play: 'Play',
   restart: 'Restart',
-  
+
   musicSettings: 'Music Settings',
   adaptiveMusic: 'Adaptive Music',
   masterVolume: 'Master Volume',
@@ -336,13 +336,13 @@ const EN_TRANSLATIONS: Translations = {
 const FR_TRANSLATIONS: Translations = {
   appTitle: 'Reversi',
   appSubtitle: 'Le Jeu de Stratégie Classique',
-  
+
   signIn: 'Connexion',
   signInWithGoogle: 'Se connecter avec Google',
   signOut: 'Déconnexion',
   signInRequired: 'Veuillez vous connecter pour continuer',
   welcomeBack: 'Bon retour',
-  
+
   game: 'Jeu',
   newGame: 'Nouvelle Partie',
   hint: 'Indice',
@@ -350,7 +350,7 @@ const FR_TRANSLATIONS: Translations = {
   about: 'À propos',
   settings: 'Paramètres',
   language: 'Langue',
-  
+
   difficulty: 'Difficulté',
   beginner: 'Débutant',
   novice: 'Novice',
@@ -360,13 +360,13 @@ const FR_TRANSLATIONS: Translations = {
   medium: 'Moyen',
   hard: 'Difficile',
   veryHard: 'Très Difficile',
-  
+
   singlePlayer: 'Un Joueur',
   multiplayer: 'Multijoueur',
   playVsComputer: 'Jouer contre l\'ordinateur',
   playOnline: 'Jouer en ligne',
   backToMenu: 'Retour au menu',
-  
+
   yourTurn: 'Votre Tour',
   opponentsTurn: 'Tour de l\'adversaire',
   thinking: 'Réflexion...',
@@ -377,7 +377,7 @@ const FR_TRANSLATIONS: Translations = {
   blackWins: 'Les Noirs gagnent !',
   whiteWins: 'Les Blancs gagnent !',
   score: 'Score',
-  
+
   lobby: 'Salon',
   createRoom: 'Créer une salle',
   joinRoom: 'Rejoindre une salle',
@@ -419,7 +419,7 @@ const FR_TRANSLATIONS: Translations = {
   you: 'Vous',
   black: 'Noir',
   white: 'Blanc',
-  
+
   leaderboard: 'Classement',
   rank: 'Rang',
   wins: 'Victoires',
@@ -428,18 +428,18 @@ const FR_TRANSLATIONS: Translations = {
   totalGames: 'Parties jouées',
   winRate: 'Taux de victoire',
   yourRank: 'Votre rang',
-  
+
   aboutTitle: 'À propos de Reversi',
   aboutDescription: 'Une implémentation moderne du jeu classique Reversi/Othello. Défiez l\'ordinateur ou jouez en ligne avec vos amis !',
   version: 'Version',
   credits: 'Crédits',
-  
+
   errorOccurred: 'Une erreur s\'est produite',
   connectionError: 'Erreur de connexion',
   authenticationError: 'Échec de l\'authentification',
   invalidMove: 'Coup invalide',
   tryAgain: 'Réessayer',
-  
+
   ok: 'OK',
   cancel: 'Annuler',
   close: 'Fermer',
@@ -447,7 +447,7 @@ const FR_TRANSLATIONS: Translations = {
   refresh: 'Actualiser',
   play: 'Jouer',
   restart: 'Recommencer',
-  
+
   musicSettings: 'Paramètres Musique',
   adaptiveMusic: 'Musique Adaptative',
   masterVolume: 'Volume Principal',
@@ -485,13 +485,13 @@ const FR_TRANSLATIONS: Translations = {
 const NL_TRANSLATIONS: Translations = {
   appTitle: 'Reversi',
   appSubtitle: 'Het Klassieke Strategiespel',
-  
+
   signIn: 'Inloggen',
   signInWithGoogle: 'Inloggen met Google',
   signOut: 'Uitloggen',
   signInRequired: 'Log in om door te gaan',
   welcomeBack: 'Welkom terug',
-  
+
   game: 'Spel',
   newGame: 'Nieuw Spel',
   hint: 'Hint',
@@ -499,7 +499,7 @@ const NL_TRANSLATIONS: Translations = {
   about: 'Over',
   settings: 'Instellingen',
   language: 'Taal',
-  
+
   difficulty: 'Moeilijkheid',
   beginner: 'Beginner',
   novice: 'Nieuweling',
@@ -509,13 +509,13 @@ const NL_TRANSLATIONS: Translations = {
   medium: 'Gemiddeld',
   hard: 'Moeilijk',
   veryHard: 'Zeer Moeilijk',
-  
+
   singlePlayer: 'Eén Speler',
   multiplayer: 'Multiplayer',
   playVsComputer: 'Spelen tegen Computer',
   playOnline: 'Online Spelen',
   backToMenu: 'Terug naar Menu',
-  
+
   yourTurn: 'Jouw Beurt',
   opponentsTurn: 'Beurt van Tegenstander',
   thinking: 'Aan het denken...',
@@ -526,7 +526,7 @@ const NL_TRANSLATIONS: Translations = {
   blackWins: 'Zwart Wint!',
   whiteWins: 'Wit Wint!',
   score: 'Score',
-  
+
   lobby: 'Lobby',
   createRoom: 'Kamer Aanmaken',
   joinRoom: 'Kamer Betreden',
@@ -568,7 +568,7 @@ const NL_TRANSLATIONS: Translations = {
   you: 'Jij',
   black: 'Zwart',
   white: 'Wit',
-  
+
   leaderboard: 'Ranglijst',
   rank: 'Rang',
   wins: 'Overwinningen',
@@ -577,18 +577,18 @@ const NL_TRANSLATIONS: Translations = {
   totalGames: 'Totale Spellen',
   winRate: 'Winstpercentage',
   yourRank: 'Jouw Rang',
-  
+
   aboutTitle: 'Over Reversi',
   aboutDescription: 'Een moderne implementatie van het klassieke Reversi/Othello spel. Daag de computer uit of speel online met vrienden!',
   version: 'Versie',
   credits: 'Credits',
-  
+
   errorOccurred: 'Er is een fout opgetreden',
   connectionError: 'Verbindingsfout',
   authenticationError: 'Authenticatie mislukt',
   invalidMove: 'Ongeldige zet',
   tryAgain: 'Probeer opnieuw',
-  
+
   ok: 'OK',
   cancel: 'Annuleren',
   close: 'Sluiten',
@@ -596,7 +596,7 @@ const NL_TRANSLATIONS: Translations = {
   refresh: 'Vernieuwen',
   play: 'Spelen',
   restart: 'Herstarten',
-  
+
   musicSettings: 'Muziekinstellingen',
   adaptiveMusic: 'Adaptieve Muziek',
   masterVolume: 'Hoofdvolume',
@@ -634,13 +634,13 @@ const NL_TRANSLATIONS: Translations = {
 const DA_TRANSLATIONS: Translations = {
   appTitle: 'Reversi',
   appSubtitle: 'Det Klassiske Strategispil',
-  
+
   signIn: 'Log ind',
   signInWithGoogle: 'Log ind med Google',
   signOut: 'Log ud',
   signInRequired: 'Log venligst ind for at fortsætte',
   welcomeBack: 'Velkommen tilbage',
-  
+
   game: 'Spil',
   newGame: 'Nyt Spil',
   hint: 'Hint',
@@ -648,7 +648,7 @@ const DA_TRANSLATIONS: Translations = {
   about: 'Om',
   settings: 'Indstillinger',
   language: 'Sprog',
-  
+
   difficulty: 'Sværhedsgrad',
   beginner: 'Begynder',
   novice: 'Nybegynder',
@@ -658,13 +658,13 @@ const DA_TRANSLATIONS: Translations = {
   medium: 'Mellem',
   hard: 'Svær',
   veryHard: 'Meget Svær',
-  
+
   singlePlayer: 'Enkeltspiller',
   multiplayer: 'Multiplayer',
   playVsComputer: 'Spil mod Computer',
   playOnline: 'Spil Online',
   backToMenu: 'Tilbage til Menu',
-  
+
   yourTurn: 'Din Tur',
   opponentsTurn: 'Modstanderens Tur',
   thinking: 'Tænker...',
@@ -675,7 +675,7 @@ const DA_TRANSLATIONS: Translations = {
   blackWins: 'Sort Vinder!',
   whiteWins: 'Hvid Vinder!',
   score: 'Score',
-  
+
   lobby: 'Lobby',
   createRoom: 'Opret Rum',
   joinRoom: 'Tilslut Rum',
@@ -717,7 +717,7 @@ const DA_TRANSLATIONS: Translations = {
   you: 'Dig',
   black: 'Sort',
   white: 'Hvid',
-  
+
   leaderboard: 'Rangliste',
   rank: 'Rang',
   wins: 'Sejre',
@@ -726,18 +726,18 @@ const DA_TRANSLATIONS: Translations = {
   totalGames: 'Totale Spil',
   winRate: 'Vinderprocent',
   yourRank: 'Din Rang',
-  
+
   aboutTitle: 'Om Reversi',
   aboutDescription: 'En moderne implementering af det klassiske Reversi/Othello spil. Udfordr computeren eller spil online med venner!',
   version: 'Version',
   credits: 'Credits',
-  
+
   errorOccurred: 'Der opstod en fejl',
   connectionError: 'Forbindelsesfejl',
   authenticationError: 'Godkendelse mislykkedes',
   invalidMove: 'Ugyldigt træk',
   tryAgain: 'Prøv igen',
-  
+
   ok: 'OK',
   cancel: 'Annuller',
   close: 'Luk',
@@ -745,7 +745,7 @@ const DA_TRANSLATIONS: Translations = {
   refresh: 'Opdater',
   play: 'Spil',
   restart: 'Genstart',
-  
+
   musicSettings: 'Musikindstillinger',
   adaptiveMusic: 'Adaptiv Musik',
   masterVolume: 'Hovedvolumen',
@@ -793,10 +793,10 @@ const STORAGE_KEY = 'reversi-locale';
 })
 export class I18nService {
   private _currentLocale = signal<SupportedLocale>(this.detectLocale());
-  
+
   readonly currentLocale = this._currentLocale.asReadonly();
   readonly supportedLocales = SUPPORTED_LOCALES;
-  
+
   readonly currentLocaleInfo = computed(() => {
     const code = this._currentLocale();
     return SUPPORTED_LOCALES.find(l => l.code === code) || SUPPORTED_LOCALES[0];
@@ -837,14 +837,14 @@ export class I18nService {
   t(key: string): string {
     // Handle dot notation for nested-like access
     const translationKey = key.replace('.', '') as keyof Translations;
-    
+
     // Map dot notation keys to actual translation keys
     const keyMap: Record<string, keyof Translations> = {
       'auth.signInRequired': 'signInRequired',
       'auth.signedIn': 'welcomeBack',
       'auth.signedOut': 'signOut',
     };
-    
+
     const mappedKey = keyMap[key] || translationKey;
     return this.translate(mappedKey as keyof Translations) || key;
   }
@@ -862,7 +862,7 @@ export class I18nService {
     // Check browser language
     const browserLang = navigator.language?.toLowerCase() || 'en';
     const langCode = browserLang.split('-')[0] as SupportedLocale;
-    
+
     if (TRANSLATIONS[langCode]) {
       return langCode;
     }

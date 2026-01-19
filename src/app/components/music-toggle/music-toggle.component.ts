@@ -18,15 +18,15 @@ import { AdaptiveMusicService } from '../../services/adaptive-music.service';
 import { I18nService } from '../../services/i18n.service';
 
 @Component({
-  selector: 'app-music-toggle',
-  standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule,
-    MatTooltipModule
-  ],
-  template: `
+    selector: 'app-music-toggle',
+    standalone: true,
+    imports: [
+        CommonModule,
+        MatButtonModule,
+        MatIconModule,
+        MatTooltipModule
+    ],
+    template: `
     <button 
       mat-icon-button
       (click)="toggleMusic()"
@@ -53,7 +53,7 @@ import { I18nService } from '../../services/i18n.service';
       }
     </button>
   `,
-  styles: [`
+    styles: [`
     :host {
       display: inline-block;
     }
@@ -89,55 +89,55 @@ import { I18nService } from '../../services/i18n.service';
   `]
 })
 export class MusicToggleComponent {
-  protected music = inject(AdaptiveMusicService);
-  protected i18n = inject(I18nService);
+    protected music = inject(AdaptiveMusicService);
+    protected i18n = inject(I18nService);
 
-  /**
-   * Button variant:
-   * - 'icon': Just the icon (for toolbars)
-   * - 'icon-text': Icon with text label
-   * - 'emoji': Emoji-only button
-   * - 'full': Full button with emoji and label
-   */
-  @Input() variant: 'icon' | 'icon-text' | 'emoji' | 'full' = 'icon';
+    /**
+     * Button variant:
+     * - 'icon': Just the icon (for toolbars)
+     * - 'icon-text': Icon with text label
+     * - 'emoji': Emoji-only button
+     * - 'full': Full button with emoji and label
+     */
+    @Input() variant: 'icon' | 'icon-text' | 'emoji' | 'full' = 'icon';
 
-  /**
-   * Size preset
-   */
-  @Input() size: 'small' | 'medium' | 'large' = 'medium';
+    /**
+     * Size preset
+     */
+    @Input() size: 'small' | 'medium' | 'large' = 'medium';
 
-  /**
-   * Show animated icon
-   */
-  @Input() animated = true;
+    /**
+     * Show animated icon
+     */
+    @Input() animated = true;
 
-  get buttonClass(): string {
-    const base = this.variant === 'icon' || this.variant === 'emoji' 
-      ? 'music-toggle-icon' 
-      : 'music-toggle-button';
-    
-    const active = this.music.enabled() ? 'active' : '';
-    
-    return `${base} ${active}`.trim();
-  }
+    get buttonClass(): string {
+        const base = this.variant === 'icon' || this.variant === 'emoji'
+            ? 'music-toggle-icon'
+            : 'music-toggle-button';
 
-  get iconClass(): string {
-    return this.animated ? 'music-icon-animated' : '';
-  }
+        const active = this.music.enabled() ? 'active' : '';
 
-  get tooltipText(): string {
-    return this.music.enabled() 
-      ? this.i18n.t('muteMusic') 
-      : this.i18n.t('enableMusic');
-  }
+        return `${base} ${active}`.trim();
+    }
 
-  get ariaLabel(): string {
-    return this.music.enabled() 
-      ? this.i18n.t('muteMusic') 
-      : this.i18n.t('enableMusic');
-  }
+    get iconClass(): string {
+        return this.animated ? 'music-icon-animated' : '';
+    }
 
-  toggleMusic(): void {
-    this.music.toggleMusic();
-  }
+    get tooltipText(): string {
+        return this.music.enabled()
+            ? this.i18n.t('muteMusic')
+            : this.i18n.t('enableMusic');
+    }
+
+    get ariaLabel(): string {
+        return this.music.enabled()
+            ? this.i18n.t('muteMusic')
+            : this.i18n.t('enableMusic');
+    }
+
+    toggleMusic(): void {
+        this.music.toggleMusic();
+    }
 }

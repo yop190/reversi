@@ -61,7 +61,8 @@ main {
 
 .logo-container {
   margin-bottom: 3rem;
-  margin-top: 3rem; /* Add space from top bar to avoid overlap */
+  margin-top: 3rem;
+  /* Add space from top bar to avoid overlap */
   padding-top: 1rem;
 }
 
@@ -214,9 +215,12 @@ main {
 }
 
 @keyframes pulse {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.5;
   }
@@ -240,8 +244,8 @@ main {
 .music-settings-panel {
   position: relative;
   background: linear-gradient(135deg,
-    rgba(30, 41, 59, 0.95) 0%,
-    rgba(15, 23, 42, 0.98) 100%);
+      rgba(30, 41, 59, 0.95) 0%,
+      rgba(15, 23, 42, 0.98) 100%);
   backdrop-filter: blur(20px);
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -270,6 +274,7 @@ main {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

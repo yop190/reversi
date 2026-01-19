@@ -4,267 +4,246 @@
   Requires authentication for multiplayer
 -->
 <div class="min-h-screen flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-  
+
   <!-- MODE: Login -->
   @if (gameMode() === 'login') {
-    <app-login 
-      (loginSuccess)="onLoginSuccess()"
-      (back)="goToMenu()">
-    </app-login>
+  <app-login (loginSuccess)="onLoginSuccess()" (back)="goToMenu()">
+  </app-login>
   }
 
   <!-- MODE: Leaderboard -->
   @if (gameMode() === 'leaderboard') {
-    <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
-      <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <div class="flex items-center">
-          <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
-            <mat-icon>arrow_back</mat-icon>
-          </button>
-          <span class="ml-2 text-white font-medium">{{ i18n.translate('leaderboard') }}</span>
-        </div>
-        <app-language-selector></app-language-selector>
+  <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center">
+        <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <span class="ml-2 text-white font-medium">{{ i18n.translate('leaderboard') }}</span>
       </div>
-    </header>
-    <app-leaderboard></app-leaderboard>
+      <app-language-selector></app-language-selector>
+    </div>
+  </header>
+  <app-leaderboard></app-leaderboard>
   }
 
   <!-- MODE: Main Menu -->
   @if (gameMode() === 'menu') {
-    <div class="flex-1 flex items-center justify-center p-4">
-      <div class="mode-selection glass-card text-center">
-        <!-- Top bar: Language left, Audio + User info right -->
-        <div class="absolute top-4 left-4 right-4 flex items-center justify-between">
-          <app-language-selector></app-language-selector>
+  <div class="flex-1 flex items-center justify-center p-4">
+    <div class="mode-selection glass-card text-center">
+      <!-- Top bar: Language left, Audio + User info right -->
+      <div class="absolute top-4 left-4 right-4 flex items-center justify-between">
+        <app-language-selector></app-language-selector>
+        <div class="flex items-center gap-2">
+          <!-- Sound Toggle -->
+          <button mat-icon-button (click)="sound.toggleSound()"
+            [matTooltip]="sound.enabled() ? i18n.t('muteSounds') : i18n.t('enableSounds')"
+            class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+            <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
+          </button>
+          <!-- Music Toggle -->
+          <app-music-toggle variant="icon"></app-music-toggle>
+          <!-- Music Settings Button -->
+          <button mat-icon-button (click)="showMusicSettings.set(!showMusicSettings())"
+            [matTooltip]="i18n.t('musicSettings')" class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+            <mat-icon>settings</mat-icon>
+          </button>
+          @if (isAuthenticated()) {
           <div class="flex items-center gap-2">
-            <!-- Sound Toggle -->
-            <button mat-icon-button 
-                    (click)="sound.toggleSound()"
-                    [matTooltip]="sound.enabled() ? i18n.t('muteSounds') : i18n.t('enableSounds')"
-                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
-              <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
-            </button>
-            <!-- Music Toggle -->
-            <app-music-toggle variant="icon"></app-music-toggle>
-            <!-- Music Settings Button -->
-            <button mat-icon-button 
-                    (click)="showMusicSettings.set(!showMusicSettings())"
-                    [matTooltip]="i18n.t('musicSettings')"
-                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
-              <mat-icon>settings</mat-icon>
-            </button>
-            @if (isAuthenticated()) {
-              <div class="flex items-center gap-2">
-                @if (currentUser()?.photoUrl) {
-                  <img [src]="currentUser()?.photoUrl" 
-                       alt="User avatar" 
-                       class="w-8 h-8 rounded-full">
-                }
-                <span class="text-white text-sm hidden sm:inline">{{ currentUser()?.displayName }}</span>
-                <button mat-icon-button (click)="logout()" matTooltip="Sign Out">
-                  <mat-icon>logout</mat-icon>
-                </button>
-              </div>
-            } @else {
-              <button mat-button color="primary" (click)="showLogin()">
-                <mat-icon>login</mat-icon>
-                <span class="ml-1">{{ i18n.translate('signIn') }}</span>
-              </button>
+            @if (currentUser()?.photoUrl) {
+            <img [src]="currentUser()?.photoUrl" alt="User avatar" class="w-8 h-8 rounded-full">
             }
+            <span class="text-white text-sm hidden sm:inline">{{ currentUser()?.displayName }}</span>
+            <button mat-icon-button (click)="logout()" matTooltip="Sign Out">
+              <mat-icon>logout</mat-icon>
+            </button>
           </div>
-        </div>
-        
-        <!-- Separator line after header -->
-        <div class="absolute top-16 left-4 right-4 border-b border-white/10"></div>
-
-        <!-- Logo -->
-        <div class="logo-container">
-          <div class="logo-icon">
-            <span class="material-symbols-outlined">grid_on</span>
-          </div>
-          <h1 class="text-3xl font-bold text-white mt-4">{{ i18n.translate('appTitle') }}</h1>
-          <p class="text-slate-400 mt-2">{{ i18n.translate('appSubtitle') }}</p>
-        </div>
-        
-        <!-- Mode Selection Buttons -->
-        <div class="mode-buttons">
-          <button mat-raised-button 
-                  color="primary" 
-                  class="mode-btn"
-                  (click)="startSinglePlayer()">
-            <mat-icon>person</mat-icon>
-            <span>{{ i18n.translate('singlePlayer') }}</span>
-            <small>{{ i18n.translate('playVsComputer') }}</small>
-          </button>
-          
-          <button mat-raised-button 
-                  color="accent" 
-                  class="mode-btn multiplayer"
-                  (click)="startMultiplayer()">
-            <mat-icon>groups</mat-icon>
-            <span>{{ i18n.translate('multiplayer') }}</span>
-            <small>{{ i18n.translate('playOnline') }}</small>
-            @if (!isAuthenticated()) {
-              <mat-icon class="lock-icon">lock</mat-icon>
-            }
-          </button>
-          
-          <button mat-stroked-button 
-                  color="primary" 
-                  class="mode-btn leaderboard-btn"
-                  (click)="showLeaderboard()">
-            <mat-icon>leaderboard</mat-icon>
-            <span>{{ i18n.translate('leaderboard') }}</span>
-          </button>
-        </div>
-        
-        <!-- Music Settings Panel (overlay) -->
-        @if (showMusicSettings()) {
-          <div class="music-settings-overlay" (click)="showMusicSettings.set(false)">
-            <div class="music-settings-panel" (click)="$event.stopPropagation()">
-              <button mat-icon-button 
-                      class="close-button"
-                      (click)="showMusicSettings.set(false)">
-                <mat-icon>close</mat-icon>
-              </button>
-              <app-music-settings></app-music-settings>
-            </div>
-          </div>
-        }
-        
-        <!-- Connection Status -->
-        <div class="connection-status">
-          @if (ws.isConnected()) {
-            <span class="status online">
-              <span class="dot"></span>
-              {{ i18n.translate('connected') }} · {{ ws.lobbyState().onlineCount }} {{ i18n.translate('onlinePlayers') }}
-            </span>
           } @else {
-            <span class="status offline">
-              <span class="dot"></span>
-              {{ i18n.translate('connecting') }}...
-            </span>
+          <button mat-button color="primary" (click)="showLogin()">
+            <mat-icon>login</mat-icon>
+            <span class="ml-1">{{ i18n.translate('signIn') }}</span>
+          </button>
           }
         </div>
       </div>
+
+      <!-- Separator line after header -->
+      <div class="absolute top-16 left-4 right-4 border-b border-white/10"></div>
+
+      <!-- Logo -->
+      <div class="logo-container">
+        <div class="logo-icon">
+          <span class="material-symbols-outlined">grid_on</span>
+        </div>
+        <h1 class="text-3xl font-bold text-white mt-4">{{ i18n.translate('appTitle') }}</h1>
+        <p class="text-slate-400 mt-2">{{ i18n.translate('appSubtitle') }}</p>
+      </div>
+
+      <!-- Mode Selection Buttons -->
+      <div class="mode-buttons">
+        <button mat-raised-button color="primary" class="mode-btn" (click)="startSinglePlayer()">
+          <mat-icon>person</mat-icon>
+          <span>{{ i18n.translate('singlePlayer') }}</span>
+          <small>{{ i18n.translate('playVsComputer') }}</small>
+        </button>
+
+        <button mat-raised-button color="accent" class="mode-btn multiplayer" (click)="startMultiplayer()">
+          <mat-icon>groups</mat-icon>
+          <span>{{ i18n.translate('multiplayer') }}</span>
+          <small>{{ i18n.translate('playOnline') }}</small>
+          @if (!isAuthenticated()) {
+          <mat-icon class="lock-icon">lock</mat-icon>
+          }
+        </button>
+
+        <button mat-stroked-button color="primary" class="mode-btn leaderboard-btn" (click)="showLeaderboard()">
+          <mat-icon>leaderboard</mat-icon>
+          <span>{{ i18n.translate('leaderboard') }}</span>
+        </button>
+      </div>
+
+      <!-- Music Settings Panel (overlay) -->
+      @if (showMusicSettings()) {
+      <div class="music-settings-overlay" (click)="showMusicSettings.set(false)">
+        <div class="music-settings-panel" (click)="$event.stopPropagation()">
+          <button mat-icon-button class="close-button" (click)="showMusicSettings.set(false)">
+            <mat-icon>close</mat-icon>
+          </button>
+          <app-music-settings></app-music-settings>
+        </div>
+      </div>
+      }
+
+      <!-- Connection Status -->
+      <div class="connection-status">
+        @if (ws.isConnected()) {
+        <span class="status online">
+          <span class="dot"></span>
+          {{ i18n.translate('connected') }} · {{ ws.lobbyState().onlineCount }} {{ i18n.translate('onlinePlayers') }}
+        </span>
+        } @else {
+        <span class="status offline">
+          <span class="dot"></span>
+          {{ i18n.translate('connecting') }}...
+        </span>
+        }
+      </div>
     </div>
+  </div>
   }
-  
+
   <!-- MODE: Multiplayer Lobby or Game Room -->
   @if (gameMode() === 'multiplayer') {
-    <!-- Back to menu button -->
-    <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
-      <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
-        <div class="flex items-center">
+  <!-- Back to menu button -->
+  <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center">
+        <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <span class="ml-2 text-white font-medium">{{ i18n.translate('multiplayer') }}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <app-language-selector></app-language-selector>
+        @if (currentUser()?.photoUrl) {
+        <img [src]="currentUser()?.photoUrl" alt="User avatar" class="w-8 h-8 rounded-full">
+        }
+      </div>
+    </div>
+  </header>
+
+  @if (isInRoom()) {
+  <app-game-room></app-game-room>
+  } @else {
+  <app-lobby></app-lobby>
+  }
+  }
+
+  <!-- MODE: Single Player -->
+  @if (gameMode() === 'single-player') {
+  <!-- Header / Toolbar -->
+  <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo and Title -->
+        <div class="flex items-center gap-3">
           <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
             <mat-icon>arrow_back</mat-icon>
           </button>
-          <span class="ml-2 text-white font-medium">{{ i18n.translate('multiplayer') }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <app-language-selector></app-language-selector>
-          @if (currentUser()?.photoUrl) {
-            <img [src]="currentUser()?.photoUrl" 
-                 alt="User avatar" 
-                 class="w-8 h-8 rounded-full">
-          }
-        </div>
-      </div>
-    </header>
-    
-    @if (isInRoom()) {
-      <app-game-room></app-game-room>
-    } @else {
-      <app-lobby></app-lobby>
-    }
-  }
-  
-  <!-- MODE: Single Player -->
-  @if (gameMode() === 'single-player') {
-    <!-- Header / Toolbar -->
-    <header class="sticky top-0 z-50 backdrop-blur-lg bg-slate-900/80 border-b border-white/10">
-      <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-16">
-          <!-- Logo and Title -->
-          <div class="flex items-center gap-3">
-            <button mat-icon-button (click)="goToMenu()" matTooltip="Back to Menu">
-              <mat-icon>arrow_back</mat-icon>
-            </button>
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-400 to-emerald-600 
                         flex items-center justify-center shadow-lg shadow-teal-500/25">
-              <span class="material-symbols-outlined text-white text-xl">grid_on</span>
-            </div>
-            <div class="hidden sm:block">
-              <h1 class="text-xl font-semibold text-white tracking-tight">{{ i18n.translate('appTitle') }}</h1>
-              <p class="text-xs text-slate-400">{{ i18n.translate('singlePlayer') }}</p>
-            </div>
+            <span class="material-symbols-outlined text-white text-xl">grid_on</span>
           </div>
-
-          <!-- Right side: Sound, Music, Menu, Language -->
-          <div class="flex items-center gap-1">
-            <!-- Sound Toggle -->
-            <button mat-icon-button 
-                    (click)="sound.toggleSound()"
-                    [matTooltip]="sound.enabled() ? 'Mute sounds' : 'Enable sounds'"
-                    class="!text-slate-300 hover:!text-white hover:!bg-white/10">
-              <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
-            </button>
-            <!-- Adaptive Music Toggle -->
-            <app-music-toggle variant="icon"></app-music-toggle>
-            <!-- Menu Component (game controls) -->
-            <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
-              (skillChange)="onSkillChange($event)"></app-menu>
-            <!-- Language selector (last) -->
-            <app-language-selector></app-language-selector>
+          <div class="hidden sm:block">
+            <h1 class="text-xl font-semibold text-white tracking-tight">{{ i18n.translate('appTitle') }}</h1>
+            <p class="text-xs text-slate-400">{{ i18n.translate('singlePlayer') }}</p>
           </div>
         </div>
+
+        <!-- Right side: Sound, Music, Menu, Language -->
+        <div class="flex items-center gap-1">
+          <!-- Sound Toggle -->
+          <button mat-icon-button (click)="sound.toggleSound()"
+            [matTooltip]="sound.enabled() ? 'Mute sounds' : 'Enable sounds'"
+            class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+            <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
+          </button>
+          <!-- Adaptive Music Toggle -->
+          <app-music-toggle variant="icon"></app-music-toggle>
+          <!-- Menu Component (game controls) -->
+          <app-menu (hint)="onHint()" (pass)="onPass()" (newGame)="onNewGame()" (exit)="goToMenu()" (about)="onAbout()"
+            (skillChange)="onSkillChange($event)"></app-menu>
+          <!-- Language selector (last) -->
+          <app-language-selector></app-language-selector>
+        </div>
       </div>
-    </header>
+    </div>
+  </header>
 
-    <!-- Main Game Area -->
-    <main class="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8 md:py-12">
-      <!-- Score Display (Above Board) -->
-      <app-status-bar class="mb-6 sm:mb-8"></app-status-bar>
+  <!-- Main Game Area -->
+  <main class="flex-1 flex flex-col items-center justify-center px-4 py-6 sm:py-8 md:py-12">
+    <!-- Score Display (Above Board) -->
+    <app-status-bar class="mb-6 sm:mb-8"></app-status-bar>
 
-      <!-- Game Board -->
-      <div class="relative">
-        <!-- Decorative glow effect -->
-        <div class="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-teal-500/20 via-emerald-500/20 to-cyan-500/20 
+    <!-- Game Board -->
+    <div class="relative">
+      <!-- Decorative glow effect -->
+      <div class="absolute -inset-4 sm:-inset-8 bg-gradient-to-r from-teal-500/20 via-emerald-500/20 to-cyan-500/20 
                     rounded-3xl blur-2xl opacity-50"></div>
 
-        <!-- Board container with glass effect -->
-        <div class="relative glass-card p-3 sm:p-4 md:p-6">
-          <app-board></app-board>
-        </div>
+      <!-- Board container with glass effect -->
+      <div class="relative glass-card p-3 sm:p-4 md:p-6">
+        <app-board></app-board>
       </div>
+    </div>
 
-      <!-- Game Message Display -->
-      @if (gameState.message(); as message) {
-      <div class="mt-6 px-6 py-3 rounded-full bg-amber-500/20 border border-amber-500/40 
+    <!-- Game Message Display -->
+    @if (gameState.message(); as message) {
+    <div class="mt-6 px-6 py-3 rounded-full bg-amber-500/20 border border-amber-500/40 
                     text-amber-200 text-sm font-medium animate-fade-in flex items-center gap-2">
-        <span class="material-symbols-outlined text-lg">info</span>
-        {{ message }}
-      </div>
-      }
+      <span class="material-symbols-outlined text-lg">info</span>
+      {{ message }}
+    </div>
+    }
 
-      <!-- Quick Actions for Mobile -->
-      @if (isMobile()) {
-      <div class="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-40">
-        <button mat-fab extended color="primary" (click)="onNewGame()"
-          class="!bg-gradient-to-r !from-teal-500 !to-emerald-600 !shadow-lg !shadow-teal-500/25">
-          <mat-icon>refresh</mat-icon>
-          New Game
-        </button>
-      </div>
-      }
-    </main>
+    <!-- Quick Actions for Mobile -->
+    @if (isMobile()) {
+    <div class="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-3 z-40">
+      <button mat-fab extended color="primary" (click)="onNewGame()"
+        class="!bg-gradient-to-r !from-teal-500 !to-emerald-600 !shadow-lg !shadow-teal-500/25">
+        <mat-icon>refresh</mat-icon>
+        New Game
+      </button>
+    </div>
+    }
+  </main>
 
-    <!-- Footer -->
-    <footer class="py-4 text-center text-slate-500 text-xs border-t border-white/5">
-      <p>Press <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">H</kbd> for hint ·
-        <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">N</kbd> for new game
-      </p>
-    </footer>
+  <!-- Footer -->
+  <footer class="py-4 text-center text-slate-500 text-xs border-t border-white/5">
+    <p>Press <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">H</kbd> for hint ·
+      <kbd class="px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">N</kbd> for new game
+    </p>
+  </footer>
   }
 </div>
 

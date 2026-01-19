@@ -42,8 +42,8 @@ COPY backend/package*.json ./
 
 # Install ONLY production dependencies and override vulnerable tar
 RUN npm ci --omit=dev && \
-    npm install tar@7.5.3 --save-optional && \
-    npm cache clean --force
+  npm install tar@7.5.3 --save-optional && \
+  npm cache clean --force
 
 # Copy built application from builder
 COPY --from=builder /app/backend/dist ./dist

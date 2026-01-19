@@ -115,6 +115,7 @@ export class WebSocketService {
     this.socket = io(this.serverUrl, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      reconnection: false, // Don't auto-reconnect to avoid console spam in solo mode
       auth: token ? { token } : undefined,
       query: token ? { token } : undefined,
     });
@@ -167,7 +168,7 @@ export class WebSocketService {
   syncPlayerProfile(): void {
     const token = this.getStoredToken();
     if (!token) return;
-    
+
     fetch(`${environment.backendUrl}/score/me`, {
       method: 'GET',
       headers: { 'Authorization': `Bearer ${token}` },
@@ -413,7 +414,7 @@ export class WebSocketService {
       this.ngZone.run(() => {
         // Game over is handled via gameState update
         console.log('Game over:', data);
-        
+
         // Sync player profile to leaderboard
         this.syncPlayerProfile();
       });

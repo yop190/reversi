@@ -17,6 +17,7 @@ import { GameStateService } from './game-state.service';
 import { MoveValidationService } from './move-validation.service';
 import { ComputerPlayerService } from './computer-player.service';
 import { SoundService } from './sound.service';
+import { AdaptiveMusicService } from './adaptive-music.service';
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +28,7 @@ export class GameEngineService {
   private moveValidation = inject(MoveValidationService);
   private computerPlayer = inject(ComputerPlayerService);
   private sound = inject(SoundService);
+  private adaptiveMusic = inject(AdaptiveMusicService);
 
   // Flag to prevent multiple computer moves
   private isComputerThinking = false;
@@ -74,6 +76,9 @@ export class GameEngineService {
     // Apply the move
     this.applyMove({ position: { row, col }, flips }, Player.Human);
 
+    // Trigger adaptive music reaction
+    this.adaptiveMusic.onPiecePlayed();
+
     // Check for game end
     if (this.checkGameEnd()) {
       return true;
@@ -110,7 +115,7 @@ export class GameEngineService {
   private updateMusicMood(): void {
     const score = this.gameState.score();
     const diff = score.black - score.white; // Human is black
-    
+
     if (diff >= 5) {
       this.sound.setMusicMood('winning');
     } else if (diff <= -5) {
@@ -167,6 +172,8 @@ export class GameEngineService {
 
     if (move) {
       this.applyMove(move, Player.Computer);
+      // Trigger adaptive music reaction for computer move too
+      this.adaptiveMusic.onPiecePlayed();
     }
 
     // Check for game end

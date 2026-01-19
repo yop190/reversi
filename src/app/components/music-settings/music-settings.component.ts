@@ -27,22 +27,22 @@ import { AdvantageCalculatorService, MusicState, GamePhase } from '../../service
 import { I18nService } from '../../services/i18n.service';
 
 @Component({
-  selector: 'app-music-settings',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatSliderModule,
-    MatButtonModule,
-    MatIconModule,
-    MatSlideToggleModule,
-    MatSelectModule,
-    MatFormFieldModule,
-    MatCardModule,
-    MatTooltipModule,
-    MatDividerModule
-  ],
-  template: `
+    selector: 'app-music-settings',
+    standalone: true,
+    imports: [
+        CommonModule,
+        FormsModule,
+        MatSliderModule,
+        MatButtonModule,
+        MatIconModule,
+        MatSlideToggleModule,
+        MatSelectModule,
+        MatFormFieldModule,
+        MatCardModule,
+        MatTooltipModule,
+        MatDividerModule
+    ],
+    template: `
     <div class="music-settings">
       <!-- Header -->
       <div class="settings-header">
@@ -187,7 +187,7 @@ import { I18nService } from '../../services/i18n.service';
       </div>
     </div>
   `,
-  styles: [`
+    styles: [`
     .music-settings {
       @apply p-4 rounded-xl;
       @apply bg-slate-800/90 backdrop-blur-lg;
@@ -396,88 +396,88 @@ import { I18nService } from '../../services/i18n.service';
   `]
 })
 export class MusicSettingsComponent {
-  protected music = inject(AdaptiveMusicService);
-  protected advantage = inject(AdvantageCalculatorService);
-  protected i18n = inject(I18nService);
+    protected music = inject(AdaptiveMusicService);
+    protected advantage = inject(AdvantageCalculatorService);
+    protected i18n = inject(I18nService);
 
-  // Expose enums to template
-  protected readonly GameMode = GameMode;
-  protected readonly MusicState = MusicState;
+    // Expose enums to template
+    protected readonly GameMode = GameMode;
+    protected readonly MusicState = MusicState;
 
-  // UI state
-  protected showAdvanced = signal(false);
-  protected masterVolume = signal(15); // 0-100
+    // UI state
+    protected showAdvanced = signal(false);
+    protected masterVolume = signal(15); // 0-100
 
-  // Layer configurations for UI
-  protected layers = [
-    { id: MusicLayer.Bass, name: 'Bass', icon: '🎸', volume: 80 },
-    { id: MusicLayer.Harmony, name: 'Harmony', icon: '🎹', volume: 60 },
-    { id: MusicLayer.Melody, name: 'Melody', icon: '🎵', volume: 70 },
-    { id: MusicLayer.Rhythm, name: 'Rhythm', icon: '🥁', volume: 40 },
-    { id: MusicLayer.Accent, name: 'Accents', icon: '✨', volume: 30 }
-  ];
+    // Layer configurations for UI
+    protected layers = [
+        { id: MusicLayer.Bass, name: 'Bass', icon: '🎸', volume: 80 },
+        { id: MusicLayer.Harmony, name: 'Harmony', icon: '🎹', volume: 60 },
+        { id: MusicLayer.Melody, name: 'Melody', icon: '🎵', volume: 70 },
+        { id: MusicLayer.Rhythm, name: 'Rhythm', icon: '🥁', volume: 40 },
+        { id: MusicLayer.Accent, name: 'Accents', icon: '✨', volume: 30 }
+    ];
 
-  constructor() {
-    // Initialize from service
-    this.masterVolume.set(Math.round(this.music.masterVolume() * 100));
-  }
-
-  onMasterVolumeChange(value: number): void {
-    this.masterVolume.set(value);
-    this.music.setMasterVolume(value / 100);
-  }
-
-  onGameModeChange(mode: GameMode): void {
-    this.music.setGameMode(mode);
-  }
-
-  onLayerVolumeChange(layerId: MusicLayer, value: number): void {
-    const layer = this.layers.find(l => l.id === layerId);
-    if (layer) {
-      layer.volume = value;
+    constructor() {
+        // Initialize from service
+        this.masterVolume.set(Math.round(this.music.masterVolume() * 100));
     }
-    // Actually update the service
-    this.music.setLayerVolume(layerId, value / 100);
-  }
 
-  getLayerVolume(layerId: MusicLayer): number {
-    return Math.round(this.music.layerVolumes()[layerId] * 100);
-  }
-
-  getLayerName(layerId: MusicLayer): string {
-    switch (layerId) {
-      case MusicLayer.Bass: return this.i18n.t('bass');
-      case MusicLayer.Harmony: return this.i18n.t('harmony');
-      case MusicLayer.Melody: return this.i18n.t('melody');
-      case MusicLayer.Rhythm: return this.i18n.t('rhythm');
-      case MusicLayer.Accent: return this.i18n.t('accents');
-      default: return layerId;
+    onMasterVolumeChange(value: number): void {
+        this.masterVolume.set(value);
+        this.music.setMasterVolume(value / 100);
     }
-  }
 
-  toggleAdvanced(): void {
-    this.showAdvanced.update(v => !v);
-  }
-
-  getMoodEmoji(): string {
-    switch (this.advantage.musicState()) {
-      case MusicState.Winning: return '😊';
-      case MusicState.Losing: return '🤔';
-      default: return '😐';
+    onGameModeChange(mode: GameMode): void {
+        this.music.setGameMode(mode);
     }
-  }
 
-  getMoodLabel(): string {
-    switch (this.advantage.musicState()) {
-      case MusicState.Winning: return this.i18n.t('winning');
-      case MusicState.Losing: return this.i18n.t('losing');
-      default: return this.i18n.t('neutral');
+    onLayerVolumeChange(layerId: MusicLayer, value: number): void {
+        const layer = this.layers.find(l => l.id === layerId);
+        if (layer) {
+            layer.volume = value;
+        }
+        // Actually update the service
+        this.music.setLayerVolume(layerId, value / 100);
     }
-  }
 
-  getAdvantagePercent(): number {
-    // Convert from [-1, 1] to [0, 100]
-    const score = this.advantage.advantageScore();
-    return Math.abs(score) * 50;
-  }
+    getLayerVolume(layerId: MusicLayer): number {
+        return Math.round(this.music.layerVolumes()[layerId] * 100);
+    }
+
+    getLayerName(layerId: MusicLayer): string {
+        switch (layerId) {
+            case MusicLayer.Bass: return this.i18n.t('bass');
+            case MusicLayer.Harmony: return this.i18n.t('harmony');
+            case MusicLayer.Melody: return this.i18n.t('melody');
+            case MusicLayer.Rhythm: return this.i18n.t('rhythm');
+            case MusicLayer.Accent: return this.i18n.t('accents');
+            default: return layerId;
+        }
+    }
+
+    toggleAdvanced(): void {
+        this.showAdvanced.update(v => !v);
+    }
+
+    getMoodEmoji(): string {
+        switch (this.advantage.musicState()) {
+            case MusicState.Winning: return '😊';
+            case MusicState.Losing: return '🤔';
+            default: return '😐';
+        }
+    }
+
+    getMoodLabel(): string {
+        switch (this.advantage.musicState()) {
+            case MusicState.Winning: return this.i18n.t('winning');
+            case MusicState.Losing: return this.i18n.t('losing');
+            default: return this.i18n.t('neutral');
+        }
+    }
+
+    getAdvantagePercent(): number {
+        // Convert from [-1, 1] to [0, 100]
+        const score = this.advantage.advantageScore();
+        return Math.abs(score) * 50;
+    }
 }
