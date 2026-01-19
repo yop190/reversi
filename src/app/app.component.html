@@ -40,7 +40,7 @@
             <!-- Sound Toggle -->
             <button mat-icon-button 
                     (click)="sound.toggleSound()"
-                    [matTooltip]="sound.enabled() ? 'Mute sounds' : 'Enable sounds'"
+                    [matTooltip]="sound.enabled() ? i18n.t('muteSounds') : i18n.t('enableSounds')"
                     class="!text-slate-300 hover:!text-white hover:!bg-white/10">
               <mat-icon>{{ sound.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
             </button>
@@ -49,7 +49,7 @@
             <!-- Music Settings Button -->
             <button mat-icon-button 
                     (click)="showMusicSettings.set(!showMusicSettings())"
-                    matTooltip="Music Settings"
+                    [matTooltip]="i18n.t('musicSettings')"
                     class="!text-slate-300 hover:!text-white hover:!bg-white/10">
               <mat-icon>settings</mat-icon>
             </button>

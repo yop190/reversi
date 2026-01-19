@@ -47,14 +47,14 @@ import { I18nService } from '../../services/i18n.service';
       <!-- Header -->
       <div class="settings-header">
         <mat-icon class="header-icon">music_note</mat-icon>
-        <h3>Music Settings</h3>
+        <h3>{{ i18n.t('musicSettings') }}</h3>
       </div>
 
       <!-- Main Music Toggle -->
       <div class="setting-row">
         <div class="setting-label">
           <mat-icon>{{ music.enabled() ? 'volume_up' : 'volume_off' }}</mat-icon>
-          <span>Adaptive Music</span>
+          <span>{{ i18n.t('adaptiveMusic') }}</span>
         </div>
         <mat-slide-toggle
           [checked]="music.enabled()"
@@ -68,7 +68,7 @@ import { I18nService } from '../../services/i18n.service';
         <div class="setting-row volume-row">
           <div class="setting-label">
             <mat-icon>tune</mat-icon>
-            <span>Master Volume</span>
+            <span>{{ i18n.t('masterVolume') }}</span>
           </div>
           <div class="volume-control">
             <mat-slider
@@ -90,26 +90,26 @@ import { I18nService } from '../../services/i18n.service';
         <div class="setting-row">
           <div class="setting-label">
             <mat-icon>sports_esports</mat-icon>
-            <span>Music Mode</span>
+            <span>{{ i18n.t('musicMode') }}</span>
           </div>
           <mat-form-field appearance="outline" class="mode-select">
             <mat-select [value]="music.gameMode()" (selectionChange)="onGameModeChange($event.value)">
               <mat-option [value]="GameMode.Solo">
                 <div class="mode-option">
-                  <span>🎮 Solo</span>
-                  <small>Full adaptive music</small>
+                  <span>🎮 {{ i18n.t('solo') }}</span>
+                  <small>{{ i18n.t('fullAdaptive') }}</small>
                 </div>
               </mat-option>
               <mat-option [value]="GameMode.Multiplayer">
                 <div class="mode-option">
-                  <span>👥 Multiplayer</span>
-                  <small>Subtle adaptation</small>
+                  <span>👥 {{ i18n.t('multiplayer') }}</span>
+                  <small>{{ i18n.t('subtleAdaptive') }}</small>
                 </div>
               </mat-option>
               <mat-option [value]="GameMode.Competitive">
                 <div class="mode-option">
-                  <span>🏆 Competitive</span>
-                  <small>Neutral only</small>
+                  <span>🏆 {{ i18n.t('competitive') }}</span>
+                  <small>{{ i18n.t('neutralOnly') }}</small>
                 </div>
               </mat-option>
             </mat-select>
@@ -118,7 +118,7 @@ import { I18nService } from '../../services/i18n.service';
 
         <!-- Music State Indicator -->
         <div class="music-state-indicator">
-          <div class="state-label">Current Mood</div>
+          <div class="state-label">{{ i18n.t('currentMood') }}</div>
           <div class="state-display" [class]="'mood-' + advantage.musicState()">
             <span class="mood-icon">{{ getMoodEmoji() }}</span>
             <span class="mood-text">{{ getMoodLabel() }}</span>
@@ -130,9 +130,9 @@ import { I18nService } from '../../services/i18n.service';
             <div class="bar-center"></div>
           </div>
           <div class="advantage-labels">
-            <span>Losing</span>
-            <span>Neutral</span>
-            <span>Winning</span>
+            <span>{{ i18n.t('losing') }}</span>
+            <span>{{ i18n.t('neutral') }}</span>
+            <span>{{ i18n.t('winning') }}</span>
           </div>
         </div>
 
@@ -143,7 +143,7 @@ import { I18nService } from '../../services/i18n.service';
           <div class="advanced-section">
             <div class="section-header" (click)="toggleAdvanced()">
               <mat-icon>expand_less</mat-icon>
-              <span>Advanced Layer Controls</span>
+              <span>{{ i18n.t('advancedControls') }}</span>
             </div>
             
             <div class="layer-controls">
@@ -151,10 +151,10 @@ import { I18nService } from '../../services/i18n.service';
                 <div class="layer-row">
                   <div class="layer-label">
                     <span class="layer-icon">{{ layer.icon }}</span>
-                    <span>{{ layer.name }}</span>
+                    <span>{{ getLayerName(layer.id) }}</span>
                   </div>
                   <mat-slider [min]="0" [max]="100" [step]="5" class="layer-slider">
-                    <input matSliderThumb [value]="layer.volume" (valueChange)="onLayerVolumeChange(layer.id, $event)">
+                    <input matSliderThumb [value]="getLayerVolume(layer.id)" (valueChange)="onLayerVolumeChange(layer.id, $event)">
                   </mat-slider>
                 </div>
               }
@@ -163,7 +163,7 @@ import { I18nService } from '../../services/i18n.service';
         } @else {
           <button mat-button class="advanced-toggle" (click)="toggleAdvanced()">
             <mat-icon>expand_more</mat-icon>
-            <span>Show Advanced Controls</span>
+            <span>{{ i18n.t('showAdvanced') }}</span>
           </button>
         }
       }
@@ -174,16 +174,13 @@ import { I18nService } from '../../services/i18n.service';
         <p>
           @switch (music.gameMode()) {
             @case (GameMode.Solo) {
-              Music adapts to your game state - brighter when winning, 
-              gentler when losing, always supportive.
+              {{ i18n.t('musicHelpSolo') }}
             }
             @case (GameMode.Multiplayer) {
-              Subtle musical changes maintain fairness while 
-              keeping the game pleasant.
+              {{ i18n.t('musicHelpMultiplayer') }}
             }
             @case (GameMode.Competitive) {
-              Neutral, consistent music ensures no player 
-              gets emotional feedback from audio.
+              {{ i18n.t('musicHelpCompetitive') }}
             }
           }
         </p>
@@ -439,7 +436,23 @@ export class MusicSettingsComponent {
     if (layer) {
       layer.volume = value;
     }
-    // Note: Would need to extend AdaptiveMusicService to support individual layer volumes
+    // Actually update the service
+    this.music.setLayerVolume(layerId, value / 100);
+  }
+
+  getLayerVolume(layerId: MusicLayer): number {
+    return Math.round(this.music.layerVolumes()[layerId] * 100);
+  }
+
+  getLayerName(layerId: MusicLayer): string {
+    switch (layerId) {
+      case MusicLayer.Bass: return this.i18n.t('bass');
+      case MusicLayer.Harmony: return this.i18n.t('harmony');
+      case MusicLayer.Melody: return this.i18n.t('melody');
+      case MusicLayer.Rhythm: return this.i18n.t('rhythm');
+      case MusicLayer.Accent: return this.i18n.t('accents');
+      default: return layerId;
+    }
   }
 
   toggleAdvanced(): void {
@@ -456,9 +469,9 @@ export class MusicSettingsComponent {
 
   getMoodLabel(): string {
     switch (this.advantage.musicState()) {
-      case MusicState.Winning: return 'Winning';
-      case MusicState.Losing: return 'Losing';
-      default: return 'Neutral';
+      case MusicState.Winning: return this.i18n.t('winning');
+      case MusicState.Losing: return this.i18n.t('losing');
+      default: return this.i18n.t('neutral');
     }
   }
 

@@ -148,6 +148,39 @@ export interface Translations {
   refresh: string;
   play: string;
   restart: string;
+  
+  // Music
+  musicSettings: string;
+  adaptiveMusic: string;
+  masterVolume: string;
+  musicMode: string;
+  solo: string;
+  fullAdaptive: string;
+  subtleAdaptive: string;
+  neutralOnly: string;
+  competitive: string;
+  currentMood: string;
+  winning: string;
+  losing: string;
+  neutral: string;
+  advancedControls: string;
+  showAdvanced: string;
+  bass: string;
+  harmony: string;
+  melody: string;
+  rhythm: string;
+  accents: string;
+  musicHelpSolo: string;
+  musicHelpMultiplayer: string;
+  musicHelpCompetitive: string;
+  enableMusic: string;
+  disableMusic: string;
+  muteMusic: string;
+  musicOn: string;
+  musicOff: string;
+  sounds: string;
+  muteSounds: string;
+  enableSounds: string;
 }
 
 // English translations (default)
@@ -265,6 +298,38 @@ const EN_TRANSLATIONS: Translations = {
   refresh: 'Refresh',
   play: 'Play',
   restart: 'Restart',
+  
+  musicSettings: 'Music Settings',
+  adaptiveMusic: 'Adaptive Music',
+  masterVolume: 'Master Volume',
+  musicMode: 'Music Mode',
+  solo: 'Solo',
+  fullAdaptive: 'Full adaptive music',
+  subtleAdaptive: 'Subtle adaptation',
+  neutralOnly: 'Neutral only',
+  competitive: 'Competitive',
+  currentMood: 'Current Mood',
+  winning: 'Winning',
+  losing: 'Losing',
+  neutral: 'Neutral',
+  advancedControls: 'Advanced Layer Controls',
+  showAdvanced: 'Show Advanced Controls',
+  bass: 'Bass',
+  harmony: 'Harmony',
+  melody: 'Melody',
+  rhythm: 'Rhythm',
+  accents: 'Accents',
+  musicHelpSolo: 'Music adapts to your game state - brighter when winning, gentler when losing, always supportive.',
+  musicHelpMultiplayer: 'Subtle musical changes maintain fairness while keeping the game pleasant.',
+  musicHelpCompetitive: 'Neutral, consistent music ensures no player gets emotional feedback from audio.',
+  enableMusic: 'Enable music',
+  disableMusic: 'Disable music',
+  muteMusic: 'Mute music',
+  musicOn: 'Music On',
+  musicOff: 'Music Off',
+  sounds: 'Sounds',
+  muteSounds: 'Mute sounds',
+  enableSounds: 'Enable sounds',
 };
 
 // French translations
@@ -382,6 +447,38 @@ const FR_TRANSLATIONS: Translations = {
   refresh: 'Actualiser',
   play: 'Jouer',
   restart: 'Recommencer',
+  
+  musicSettings: 'Paramètres Musique',
+  adaptiveMusic: 'Musique Adaptative',
+  masterVolume: 'Volume Principal',
+  musicMode: 'Mode Musique',
+  solo: 'Solo',
+  fullAdaptive: 'Musique entièrement adaptative',
+  subtleAdaptive: 'Adaptation subtile',
+  neutralOnly: 'Neutre uniquement',
+  competitive: 'Compétitif',
+  currentMood: 'Humeur Actuelle',
+  winning: 'Gagnant',
+  losing: 'Perdant',
+  neutral: 'Neutre',
+  advancedControls: 'Contrôles Avancés des Couches',
+  showAdvanced: 'Afficher les Contrôles Avancés',
+  bass: 'Basse',
+  harmony: 'Harmonie',
+  melody: 'Mélodie',
+  rhythm: 'Rythme',
+  accents: 'Accents',
+  musicHelpSolo: 'La musique s\'adapte à votre état de jeu - plus lumineuse quand vous gagnez, plus douce quand vous perdez.',
+  musicHelpMultiplayer: 'Des changements musicaux subtils maintiennent l\'équité tout en gardant le jeu agréable.',
+  musicHelpCompetitive: 'Une musique neutre et constante garantit qu\'aucun joueur ne reçoit de feedback émotionnel de l\'audio.',
+  enableMusic: 'Activer la musique',
+  disableMusic: 'Désactiver la musique',
+  muteMusic: 'Couper la musique',
+  musicOn: 'Musique activée',
+  musicOff: 'Musique désactivée',
+  sounds: 'Sons',
+  muteSounds: 'Couper les sons',
+  enableSounds: 'Activer les sons',
 };
 
 // Dutch translations
@@ -499,6 +596,38 @@ const NL_TRANSLATIONS: Translations = {
   refresh: 'Vernieuwen',
   play: 'Spelen',
   restart: 'Herstarten',
+  
+  musicSettings: 'Muziekinstellingen',
+  adaptiveMusic: 'Adaptieve Muziek',
+  masterVolume: 'Hoofdvolume',
+  musicMode: 'Muziekmodus',
+  solo: 'Solo',
+  fullAdaptive: 'Volledig adaptieve muziek',
+  subtleAdaptive: 'Subtiele aanpassing',
+  neutralOnly: 'Alleen neutraal',
+  competitive: 'Competitief',
+  currentMood: 'Huidige Stemming',
+  winning: 'Winnend',
+  losing: 'Verliezend',
+  neutral: 'Neutraal',
+  advancedControls: 'Geavanceerde Laagcontroles',
+  showAdvanced: 'Toon Geavanceerde Controles',
+  bass: 'Bas',
+  harmony: 'Harmonie',
+  melody: 'Melodie',
+  rhythm: 'Ritme',
+  accents: 'Accenten',
+  musicHelpSolo: 'Muziek past zich aan je spelstatus aan - helderder bij winnen, zachter bij verliezen.',
+  musicHelpMultiplayer: 'Subtiele muzikale veranderingen behouden eerlijkheid terwijl het spel prettig blijft.',
+  musicHelpCompetitive: 'Neutrale, consistente muziek zorgt dat geen speler emotionele feedback krijgt van audio.',
+  enableMusic: 'Muziek inschakelen',
+  disableMusic: 'Muziek uitschakelen',
+  muteMusic: 'Muziek dempen',
+  musicOn: 'Muziek aan',
+  musicOff: 'Muziek uit',
+  sounds: 'Geluiden',
+  muteSounds: 'Geluiden dempen',
+  enableSounds: 'Geluiden inschakelen',
 };
 
 // Danish translations
@@ -616,6 +745,38 @@ const DA_TRANSLATIONS: Translations = {
   refresh: 'Opdater',
   play: 'Spil',
   restart: 'Genstart',
+  
+  musicSettings: 'Musikindstillinger',
+  adaptiveMusic: 'Adaptiv Musik',
+  masterVolume: 'Hovedvolumen',
+  musicMode: 'Musiktilstand',
+  solo: 'Solo',
+  fullAdaptive: 'Fuldt adaptiv musik',
+  subtleAdaptive: 'Subtil tilpasning',
+  neutralOnly: 'Kun neutral',
+  competitive: 'Konkurrence',
+  currentMood: 'Nuværende Stemning',
+  winning: 'Vinder',
+  losing: 'Taber',
+  neutral: 'Neutral',
+  advancedControls: 'Avancerede Lagkontroller',
+  showAdvanced: 'Vis Avancerede Kontroller',
+  bass: 'Bas',
+  harmony: 'Harmoni',
+  melody: 'Melodi',
+  rhythm: 'Rytme',
+  accents: 'Accenter',
+  musicHelpSolo: 'Musikken tilpasser sig din spilstatus - lysere når du vinder, blødere når du taber.',
+  musicHelpMultiplayer: 'Subtile musikalske ændringer opretholder fairness mens spillet forbliver behageligt.',
+  musicHelpCompetitive: 'Neutral, konsistent musik sikrer at ingen spiller får følelsesmæssig feedback fra lyd.',
+  enableMusic: 'Aktiver musik',
+  disableMusic: 'Deaktiver musik',
+  muteMusic: 'Slå musik fra',
+  musicOn: 'Musik til',
+  musicOff: 'Musik fra',
+  sounds: 'Lyde',
+  muteSounds: 'Slå lyde fra',
+  enableSounds: 'Aktiver lyde',
 };
 
 const TRANSLATIONS: Record<SupportedLocale, Translations> = {

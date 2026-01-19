@@ -28,11 +28,12 @@ import { I18nService } from '../../services/i18n.service';
   ],
   template: `
     <button 
-      [class]="buttonClass"
+      mat-icon-button
       (click)="toggleMusic()"
       [attr.aria-label]="ariaLabel"
       [matTooltip]="tooltipText"
-      matTooltipPosition="below">
+      matTooltipPosition="below"
+      class="!text-slate-300 hover:!text-white hover:!bg-white/10">
       
       @if (variant === 'icon') {
         <mat-icon [class]="iconClass">
@@ -40,14 +41,14 @@ import { I18nService } from '../../services/i18n.service';
         </mat-icon>
       } @else if (variant === 'icon-text') {
         <mat-icon>{{ music.enabled() ? 'music_note' : 'music_off' }}</mat-icon>
-        <span class="ml-1">{{ music.enabled() ? 'Music On' : 'Music Off' }}</span>
+        <span class="ml-1">{{ music.enabled() ? i18n.t('musicOn') : i18n.t('musicOff') }}</span>
       } @else if (variant === 'emoji') {
         <span class="text-xl">{{ music.enabled() ? '🎵' : '🔇' }}</span>
       } @else {
         <!-- Full button with label -->
         <div class="flex items-center gap-2">
           <span class="text-lg">{{ music.enabled() ? '🎵' : '🔇' }}</span>
-          <span>{{ music.enabled() ? 'Music' : 'Muted' }}</span>
+          <span>{{ music.enabled() ? i18n.t('musicOn') : i18n.t('musicOff') }}</span>
         </div>
       }
     </button>
@@ -126,14 +127,14 @@ export class MusicToggleComponent {
 
   get tooltipText(): string {
     return this.music.enabled() 
-      ? 'Click to mute music' 
-      : 'Click to enable music';
+      ? this.i18n.t('muteMusic') 
+      : this.i18n.t('enableMusic');
   }
 
   get ariaLabel(): string {
     return this.music.enabled() 
-      ? 'Mute background music' 
-      : 'Enable background music';
+      ? this.i18n.t('muteMusic') 
+      : this.i18n.t('enableMusic');
   }
 
   toggleMusic(): void {

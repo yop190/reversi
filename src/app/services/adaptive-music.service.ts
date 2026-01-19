@@ -297,6 +297,22 @@ export class AdaptiveMusicService {
   }
 
   /**
+   * Set individual layer volume (0.0 to 1.0)
+   */
+  setLayerVolume(layer: MusicLayer, volume: number): void {
+    const clampedVolume = Math.max(0, Math.min(1, volume));
+    this._layerVolumes.update(volumes => ({
+      ...volumes,
+      [layer]: clampedVolume
+    }));
+  }
+
+  /**
+   * Get layer volumes (readonly)
+   */
+  readonly layerVolumes = computed(() => this._layerVolumes());
+
+  /**
    * Start playing music
    * @param force - If true, starts even without prior user interaction (for auto-resume)
    */
