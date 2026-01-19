@@ -62,8 +62,8 @@ const DEFAULT_CONFIG: AdvantageConfig = {
   cornerControlWeight: 0.40,
   mobilityWeight: 0.20,
   stabilityWeight: 0.10,
-  winningThreshold: 0.35,
-  losingThreshold: -0.35
+  winningThreshold: 0.15,   // Lower threshold - trigger mood change earlier
+  losingThreshold: -0.15    // Lower threshold - trigger mood change earlier
 };
 
 // Corner positions (1-indexed to match internal board)

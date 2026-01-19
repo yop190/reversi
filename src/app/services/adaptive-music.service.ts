@@ -96,27 +96,27 @@ const CHORD_PROGRESSIONS = {
   ]
 };
 
-// Melody patterns for each mood
+// Melody patterns for each mood - VERY DISTINCT patterns
 const MELODY_PATTERNS = {
   neutral: [
     NOTES.C5, 0, NOTES.E5, 0, NOTES.G5, 0, NOTES.E5, 0,
     NOTES.D5, 0, NOTES.C5, 0, NOTES.A4, 0, 0, 0
   ],
   winning: [
-    NOTES.C5, NOTES.E5, NOTES.G5, NOTES.C6, NOTES.G5, NOTES.E5, NOTES.C5, NOTES.E5,
-    NOTES.D5, NOTES.G5, NOTES.A5, 0, NOTES.G5, NOTES.E5, NOTES.C5, 0
+    NOTES.G5, NOTES.C6, NOTES.E5, NOTES.G5, NOTES.C6, NOTES.G5, NOTES.E5, NOTES.C5,
+    NOTES.D5, NOTES.G5, NOTES.C6, NOTES.G5, NOTES.E5, NOTES.G5, NOTES.C6, 0
   ],
   losing: [
-    NOTES.A4, 0, 0, NOTES.E4, 0, 0, NOTES.C4, 0,
-    NOTES.D4, 0, NOTES.E4, 0, NOTES.A4, 0, 0, 0
+    NOTES.A4, 0, 0, 0, NOTES.E4, 0, 0, 0,
+    NOTES.D4, 0, 0, NOTES.C4, 0, 0, 0, 0
   ]
 };
 
-// Bass patterns
+// Bass patterns - DISTINCT for each mood
 const BASS_PATTERNS = {
   neutral: [NOTES.C3, 0, 0, 0, NOTES.G3, 0, 0, 0],
-  winning: [NOTES.C3, 0, NOTES.G3, 0, NOTES.C3, NOTES.G3, 0, 0],
-  losing: [NOTES.A3, 0, 0, 0, 0, 0, NOTES.E3, 0]
+  winning: [NOTES.C3, NOTES.G3, NOTES.C3, 0, NOTES.G3, NOTES.C3, NOTES.G3, 0],  // Active, energetic
+  losing: [NOTES.A3, 0, 0, 0, 0, 0, 0, 0]  // Sparse, slower
 };
 
 @Injectable({
@@ -157,7 +157,7 @@ export class AdaptiveMusicService {
   // Crossfade progress (0 = current mood, 1 = target mood)
   private crossfadeProgress = 0;
   private crossfadeStartTime = 0;
-  private readonly CROSSFADE_DURATION = 4.0; // Seconds for smooth transition
+  private readonly CROSSFADE_DURATION = 1.5; // Faster transition for noticeable change
 
   // Public readonly signals
   readonly enabled = this._enabled.asReadonly();
@@ -692,6 +692,35 @@ export class AdaptiveMusicService {
   // ============================================================
 
   /**
+   * Update lowpass filter frequency based on mood for noticeable tonal change
+   * - Winning: Higher frequency (3500Hz) = brighter, more energetic sound
+   * - Neutral: Medium frequency (2000Hz) = balanced sound
+   * - Losing: Lower frequency (800Hz) = warmer, more subdued sound
+   */
+  private updateFilterForMood(advantageScore: number): void {
+    if (!this.lowpassFilter || !this.audioContext) return;
+    
+    // Map advantage score (-1 to 1) to filter frequency (800 to 3500 Hz)
+    // Using exponential scaling for more musical result
+    const minFreq = 800;
+    const maxFreq = 3500;
+    const normalizedScore = (advantageScore + 1) / 2; // 0 to 1
+    const targetFreq = minFreq + (maxFreq - minFreq) * normalizedScore;
+    
+    // Smooth transition to new frequency
+    const currentTime = this.audioContext.currentTime;
+    this.lowpassFilter.frequency.cancelScheduledValues(currentTime);
+    this.lowpassFilter.frequency.setValueAtTime(this.lowpassFilter.frequency.value, currentTime);
+    this.lowpassFilter.frequency.linearRampToValueAtTime(targetFreq, currentTime + 0.3);
+    
+    // Also adjust Q for more dramatic effect when winning (slightly resonant)
+    const targetQ = 0.5 + (normalizedScore * 1.5); // 0.5 to 2.0
+    this.lowpassFilter.Q.cancelScheduledValues(currentTime);
+    this.lowpassFilter.Q.setValueAtTime(this.lowpassFilter.Q.value, currentTime);
+    this.lowpassFilter.Q.linearRampToValueAtTime(targetQ, currentTime + 0.3);
+  }
+
+  /**
    * Get interpolated mood based on crossfade progress
    */
   private getInterpolatedMood(): InterpolatedMood {
@@ -702,11 +731,14 @@ export class AdaptiveMusicService {
     const winningInfluence = Math.max(0, advantageScore);
     const losingInfluence = Math.max(0, -advantageScore);
     
-    // Determine primary state
+    // Update filter based on mood for more noticeable change
+    this.updateFilterForMood(advantageScore);
+    
+    // Determine primary state (using lower thresholds)
     let state = MusicState.Neutral;
-    if (advantageScore >= 0.35) {
+    if (advantageScore >= 0.15) {
       state = MusicState.Winning;
-    } else if (advantageScore <= -0.35) {
+    } else if (advantageScore <= -0.15) {
       state = MusicState.Losing;
     }
     
