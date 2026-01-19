@@ -558,92 +558,6 @@ jobs:
             exit 1
           fi
 
-      - name: Install Socket.IO Client for Testing
-        run: |
-          npm install socket.io-client
-
-      - name: Test WebSocket Multiplayer Connectivity
-        run: |
-          echo "🎮 Testing WebSocket multiplayer connectivity..."
-          
-          cat > test-websocket.js << 'EOF'
-          const { io } = require('socket.io-client');
-          
-          const BACKEND_URL = process.env.BACKEND_URL;
-          const TIMEOUT = 30000; // 30 seconds
-          
-          console.log(`Connecting to: ${BACKEND_URL}`);
-          
-          const socket = io(BACKEND_URL, {
-            transports: ['websocket', 'polling'],
-            timeout: TIMEOUT,
-            reconnection: false,
-          });
-          
-          let connected = false;
-          let roomCreated = false;
-          
-          const timeoutId = setTimeout(() => {
-            console.error('❌ Connection timeout - multiplayer is not working!');
-            process.exit(1);
-          }, TIMEOUT);
-          
-          socket.on('connect', () => {
-            console.log('✅ WebSocket connected!');
-            connected = true;
-          });
-          
-          // Events use 'server:' and 'client:' prefixes
-          socket.on('server:connected', (data) => {
-            console.log('✅ Received player info:', JSON.stringify(data));
-            
-            // Try to create a room
-            console.log('📝 Creating a test room...');
-            socket.emit('client:createRoom', { roomName: 'CI-Test-Room' });
-          });
-          
-          socket.on('server:roomJoined', (data) => {
-            console.log('✅ Room created/joined successfully!', JSON.stringify(data));
-            roomCreated = true;
-            
-            // Leave the room and disconnect
-            socket.emit('client:leaveRoom');
-            
-            setTimeout(() => {
-              clearTimeout(timeoutId);
-              console.log('');
-              console.log('✅✅✅ MULTIPLAYER CONNECTIVITY TEST PASSED ✅✅✅');
-              console.log('');
-              socket.disconnect();
-              process.exit(0);
-            }, 1000);
-          });
-          
-          socket.on('server:lobbyUpdate', (data) => {
-            console.log('📊 Lobby update received:', JSON.stringify(data));
-          });
-          
-          socket.on('server:error', (error) => {
-            console.log('⚠️ Server error:', JSON.stringify(error));
-          });
-          
-          socket.on('connect_error', (error) => {
-            console.error('❌ Connection error:', error.message);
-            clearTimeout(timeoutId);
-            process.exit(1);
-          });
-          
-          socket.on('disconnect', (reason) => {
-            console.log('Disconnected:', reason);
-            if (!roomCreated) {
-              clearTimeout(timeoutId);
-              process.exit(1);
-            }
-          });
-          EOF
-          
-          BACKEND_URL="https://${{ env.BACKEND_FQDN }}" node test-websocket.js
-
       - name: Deployment Summary
         run: |
           echo ""
@@ -656,8 +570,7 @@ jobs:
           echo ""
           echo "✅ Frontend health: OK"
           echo "✅ Backend health: OK"
-          echo "✅ WebSocket connectivity: OK"
-          echo "✅ Multiplayer rooms: OK"
           echo ""
-          echo "🎮 Multiplayer is fully operational!"
+          echo "🎮 WebSocket multiplayer requires authentication"
+          echo "   (manual testing needed after Google OAuth login)"
           echo "========================================"
