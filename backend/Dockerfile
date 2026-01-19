@@ -40,8 +40,9 @@ RUN npm install -g npm@latest && npm cache clean --force
 # Copy package files for production install
 COPY backend/package*.json ./
 
-# Install ONLY production dependencies (no devDependencies = no cross-spawn/glob)
+# Install ONLY production dependencies and override vulnerable tar
 RUN npm ci --omit=dev && \
+    npm install tar@7.5.3 --save-optional && \
     npm cache clean --force
 
 # Copy built application from builder

@@ -23,13 +23,11 @@ import { I18nService, SupportedLocale } from '../../services/i18n.service';
   ],
   template: `
     <button 
-      mat-button 
+      mat-icon-button
       [matMenuTriggerFor]="langMenu"
       [matTooltip]="i18n.translate('language')"
-      class="!text-slate-300 hover:!text-white hover:!bg-white/10 !rounded-lg">
-      <span class="flag">{{ i18n.currentLocaleInfo().flag }}</span>
-      <span class="lang-name hidden sm:inline">{{ i18n.currentLocaleInfo().nativeName }}</span>
-      <mat-icon iconPositionEnd>expand_more</mat-icon>
+      class="!text-slate-300 hover:!text-white hover:!bg-white/10">
+      <span class="flag text-xl">{{ i18n.currentLocaleInfo().flag }}</span>
     </button>
 
     <mat-menu #langMenu="matMenu" class="language-menu">
