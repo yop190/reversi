@@ -1,0 +1,454 @@
+openapi: 3.0.3
+info:
+  title: Reversi Game API
+  description: |
+    REST API for the Reversi (Othello) multiplayer game engine.
+    Azure API Management imports this specification and exposes each
+    operation as an MCP tool via its native MCP-gateway feature.
+    Claude Desktop (or any MCP client) connects to APIM's Server-Sent
+    Events endpoint, and APIM translates MCP tool calls into these
+    REST requests transparently.
+  version: "1.0.0"
+  contact:
+    name: Reversi Team
+servers:
+  - url: https://ca-reversi-backend.{environment}.azurecontainerapps.io
+    description: Azure Container Apps backend
+    variables:
+      environment:
+        default: greenisland-123abc
+        description: Container Apps environment FQDN suffix
+
+paths:
+  /api/game/rooms:
+    get:
+      operationId: listRooms
+      summary: List game rooms
+      description: >
+        List all game rooms currently open on the server.
+        Returns room id, name, player count, and whether a game is in progress.
+      parameters:
+        - name: includeInProgress
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: ["true", "false"]
+            default: "true"
+          description: If "false", exclude rooms where a game is already in progress
+      responses:
+        "200":
+          description: Room list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoomListResponse"
+
+    post:
+      operationId: createRoom
+      summary: Create a new game room
+      description: >
+        Create a new game room. The calling bot automatically joins
+        as the first player (Black) and waits for an opponent.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRoomRequest"
+      responses:
+        "201":
+          description: Room created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateRoomResponse"
+
+  /api/game/rooms/{roomId}/join:
+    post:
+      operationId: joinRoom
+      summary: Join a game room
+      description: >
+        Join an existing room as a player (if a seat is free) or as a
+        spectator. Returns the assigned colour and current game state.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Joined successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JoinRoomResponse"
+
+  /api/game/rooms/{roomId}/leave:
+    post:
+      operationId: leaveRoom
+      summary: Leave a game room
+      description: Leave the specified room.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Left the room
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessMessage"
+
+  /api/game/rooms/{roomId}/state:
+    get:
+      operationId: getGameState
+      summary: Get game state
+      description: >
+        Return the full 8×8 board, scores, whose turn it is,
+        valid moves, and whether the game is over.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Current game state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GameStateResponse"
+
+  /api/game/rooms/{roomId}/valid-moves:
+    get:
+      operationId: getValidMoves
+      summary: Get valid moves
+      description: >
+        Return the list of valid moves (row, col) for the current
+        player. If empty, the player must pass.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Valid moves
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidMovesResponse"
+
+  /api/game/rooms/{roomId}/move:
+    post:
+      operationId: makeMove
+      summary: Place a piece
+      description: >
+        Place a piece at (row, col). Row and col are 0-indexed (0–7).
+        Returns the new board state after flipping captured pieces.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MakeMoveRequest"
+      responses:
+        "200":
+          description: Move executed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MakeMoveResponse"
+
+  /api/game/rooms/{roomId}/pass:
+    post:
+      operationId: passTurn
+      summary: Pass turn
+      description: >
+        Pass (skip) the current turn. Only valid when the active
+        player has no legal moves.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Turn passed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PassTurnResponse"
+
+  /api/game/rooms/{roomId}/hint:
+    get:
+      operationId: getHint
+      summary: Get move hint
+      description: >
+        Ask the server engine for the best move suggestion for the
+        active player using minimax with alpha-beta pruning.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Hint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HintResponse"
+
+  /api/game/rooms/{roomId}/resign:
+    post:
+      operationId: resignGame
+      summary: Resign the game
+      description: Resign from the current game. The opponent wins.
+      parameters:
+        - $ref: "#/components/parameters/roomId"
+      responses:
+        "200":
+          description: Game resigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResignResponse"
+
+# ─── Components ──────────────────────────────────────────────────────────────
+
+components:
+  parameters:
+    roomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Unique identifier of the game room
+
+  schemas:
+    Position:
+      type: object
+      properties:
+        row:
+          type: integer
+          minimum: 0
+          maximum: 7
+        col:
+          type: integer
+          minimum: 0
+          maximum: 7
+
+    PlayerInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        color:
+          type: string
+          enum: [black, white]
+
+    RoomSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        playerCount:
+          type: integer
+        spectatorCount:
+          type: integer
+        players:
+          type: array
+          items:
+            $ref: "#/components/schemas/PlayerInfo"
+        inProgress:
+          type: boolean
+        gameOver:
+          type: boolean
+
+    GameState:
+      type: object
+      properties:
+        board:
+          type: string
+          description: "Pretty-printed 8×8 board (● = Black, ○ = White, · = empty)"
+        boardRaw:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+          description: "Raw 8×8 board matrix (0=empty, 1=black, 2=white)"
+        currentTurn:
+          type: string
+          enum: [black, white]
+        blackScore:
+          type: integer
+        whiteScore:
+          type: integer
+        gameOver:
+          type: boolean
+        winner:
+          type: string
+          nullable: true
+          enum: [black, white, draw, null]
+        lastMove:
+          $ref: "#/components/schemas/Position"
+        validMoves:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+        validMoveCount:
+          type: integer
+
+    # ── Request / Response schemas ──
+
+    CreateRoomRequest:
+      type: object
+      required: [roomName]
+      properties:
+        roomName:
+          type: string
+          description: Display name for the room
+
+    CreateRoomResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        roomId:
+          type: string
+        roomName:
+          type: string
+        botSocketId:
+          type: string
+        yourColor:
+          type: string
+        message:
+          type: string
+
+    JoinRoomResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        roomId:
+          type: string
+        botSocketId:
+          type: string
+        yourColor:
+          type: string
+          nullable: true
+        isSpectator:
+          type: boolean
+        room:
+          $ref: "#/components/schemas/RoomSummary"
+        gameState:
+          $ref: "#/components/schemas/GameState"
+        message:
+          type: string
+
+    RoomListResponse:
+      type: object
+      properties:
+        rooms:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoomSummary"
+        totalCount:
+          type: integer
+        onlineCount:
+          type: integer
+
+    GameStateResponse:
+      type: object
+      properties:
+        room:
+          $ref: "#/components/schemas/RoomSummary"
+        gameState:
+          $ref: "#/components/schemas/GameState"
+        message:
+          type: string
+
+    ValidMovesResponse:
+      type: object
+      properties:
+        currentTurn:
+          type: string
+        validMoves:
+          type: array
+          items:
+            $ref: "#/components/schemas/Position"
+        count:
+          type: integer
+        hint:
+          type: string
+
+    MakeMoveRequest:
+      type: object
+      required: [row, col]
+      properties:
+        row:
+          type: integer
+          minimum: 0
+          maximum: 7
+          description: "Row index 0–7 (top = 0)"
+        col:
+          type: integer
+          minimum: 0
+          maximum: 7
+          description: "Column index 0–7 (left = 0)"
+
+    MakeMoveResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        move:
+          $ref: "#/components/schemas/Position"
+        gameState:
+          $ref: "#/components/schemas/GameState"
+        gameOver:
+          type: boolean
+        winner:
+          type: string
+          nullable: true
+        finalScore:
+          type: object
+          properties:
+            black:
+              type: integer
+            white:
+              type: integer
+
+    PassTurnResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        gameState:
+          $ref: "#/components/schemas/GameState"
+
+    HintResponse:
+      type: object
+      properties:
+        currentTurn:
+          type: string
+        suggestedMove:
+          $ref: "#/components/schemas/Position"
+        message:
+          type: string
+
+    ResignResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        resigned:
+          type: string
+        winner:
+          type: string
+        message:
+          type: string
+
+    SuccessMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string

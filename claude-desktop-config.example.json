@@ -1,13 +1,7 @@
 {
   "mcpServers": {
     "reversi-game": {
-      "command": "node",
-      "args": [
-        "__REPLACE_WITH_ABSOLUTE_PATH__/backend/dist/backend/src/mcp/mcp-stdio.js"
-      ],
-      "env": {
-        "REVERSI_API": "http://localhost:3001"
-      }
+      "url": "https://apim-reversi-prod.azure-api.net/reversi/mcp/sse"
     }
   }
 }

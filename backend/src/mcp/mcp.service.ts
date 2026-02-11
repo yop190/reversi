@@ -9,6 +9,15 @@ import {
   GameState,
   Position,
 } from '../../../shared/game.types';
+import {
+  gameEvents,
+  GAME_STATE_UPDATED,
+  GAME_STARTED,
+  GAME_OVER,
+  PLAYER_JOINED,
+  PLAYER_LEFT,
+  TURN_PASSED,
+} from '../game/game-events';
 
 // ─── MCP Tool Definitions (JSON Schema) ─────────────────────────────────────
 
@@ -281,9 +290,9 @@ export class McpService {
     }
   }
 
-  // ── tool implementations ─────────────────────────────────────────────────
+  // ── tool implementations (public for REST controller) ─────────────────────
 
-  private listRooms(args: Record<string, unknown>) {
+  listRooms(args: Record<string, unknown>) {
     const includeInProgress = args.includeInProgress !== false;
     const summaries = this.roomService.getRoomSummaries();
     const filtered = includeInProgress
@@ -296,7 +305,7 @@ export class McpService {
     };
   }
 
-  private createRoom(args: Record<string, unknown>) {
+  createRoom(args: Record<string, unknown>) {
     const roomName = String(args.roomName || 'MCP Game');
     const botId = this.nextBotId();
 
@@ -320,7 +329,7 @@ export class McpService {
     };
   }
 
-  private joinRoom(args: Record<string, unknown>) {
+  joinRoom(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const botId = this.nextBotId();
 
@@ -332,6 +341,23 @@ export class McpService {
     }
 
     const room = result.room!;
+
+    // Notify WebSocket clients
+    gameEvents.emit(PLAYER_JOINED, {
+      roomId: room.id,
+      player: botPlayer,
+      isSpectator: result.isSpectator,
+    });
+
+    // If game just started (2 players), broadcast
+    if (room.players.length === 2 && room.gameState) {
+      gameEvents.emit(GAME_STARTED, {
+        roomId: room.id,
+        gameState: room.gameState,
+        players: room.players,
+      });
+    }
+
     const payload: Record<string, unknown> = {
       success: true,
       roomId: room.id,
@@ -351,7 +377,7 @@ export class McpService {
     return payload;
   }
 
-  private leaveRoom(args: Record<string, unknown>) {
+  leaveRoom(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const room = this.roomService.getRoom(roomId);
     if (!room) throw new Error('Room not found');
@@ -363,10 +389,17 @@ export class McpService {
     this.roomService.leaveRoom(botPlayer.id);
     this.playerService.removePlayer(botPlayer.id);
 
+    // Notify WebSocket clients
+    gameEvents.emit(PLAYER_LEFT, {
+      roomId: room.id,
+      player: botPlayer,
+      isSpectator: false,
+    });
+
     return { success: true, message: `Left room "${room.name}".` };
   }
 
-  private getGameState(args: Record<string, unknown>) {
+  getGameState(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const room = this.roomService.getRoom(roomId);
     if (!room) throw new Error('Room not found');
@@ -384,7 +417,7 @@ export class McpService {
     return result;
   }
 
-  private getValidMoves(args: Record<string, unknown>) {
+  getValidMoves(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const room = this.roomService.getRoom(roomId);
     if (!room) throw new Error('Room not found');
@@ -401,7 +434,7 @@ export class McpService {
     };
   }
 
-  private doMakeMove(args: Record<string, unknown>) {
+  doMakeMove(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const row = Number(args.row);
     const col = Number(args.col);
@@ -441,6 +474,24 @@ export class McpService {
     // Persist new state
     this.roomService.updateGameState(roomId, moveResult.newState);
 
+    // Broadcast to WebSocket clients so browser players see the move
+    gameEvents.emit(GAME_STATE_UPDATED, {
+      roomId,
+      gameState: moveResult.newState,
+      message: moveResult.newState.gameOver
+        ? `Game Over! ${moveResult.newState.winner === 'draw' ? "It's a draw!" : `${moveResult.newState.winner} wins!`}`
+        : undefined,
+    });
+
+    if (moveResult.newState.gameOver) {
+      gameEvents.emit(GAME_OVER, {
+        roomId,
+        winner: moveResult.newState.winner,
+        blackScore: moveResult.newState.blackScore,
+        whiteScore: moveResult.newState.whiteScore,
+      });
+    }
+
     const resp: Record<string, unknown> = {
       success: true,
       move: { row, col },
@@ -459,7 +510,7 @@ export class McpService {
     return resp;
   }
 
-  private doPassTurn(args: Record<string, unknown>) {
+  doPassTurn(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const room = this.roomService.getRoom(roomId);
     if (!room) throw new Error('Room not found');
@@ -478,6 +529,13 @@ export class McpService {
 
     this.roomService.updateGameState(roomId, passResult.newState);
 
+    // Broadcast pass to WebSocket clients
+    gameEvents.emit(TURN_PASSED, {
+      roomId,
+      gameState: passResult.newState,
+      player: botColor,
+    });
+
     return {
       success: true,
       message: `${botColor} passed.`,
@@ -485,7 +543,7 @@ export class McpService {
     };
   }
 
-  private doGetHint(args: Record<string, unknown>) {
+  doGetHint(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const room = this.roomService.getRoom(roomId);
     if (!room) throw new Error('Room not found');
@@ -507,7 +565,7 @@ export class McpService {
     };
   }
 
-  private doResignGame(args: Record<string, unknown>) {
+  doResignGame(args: Record<string, unknown>) {
     const roomId = String(args.roomId);
     const room = this.roomService.getRoom(roomId);
     if (!room) throw new Error('Room not found');
@@ -525,6 +583,14 @@ export class McpService {
     room.gameState.gameOver = true;
     room.gameState.winner = opponent;
     this.roomService.updateGameState(roomId, room.gameState);
+
+    // Broadcast resignation to WebSocket clients
+    gameEvents.emit(GAME_OVER, {
+      roomId,
+      winner: opponent,
+      blackScore: room.gameState.blackScore,
+      whiteScore: room.gameState.whiteScore,
+    });
 
     return {
       success: true,

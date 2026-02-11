@@ -1,151 +1,125 @@
-# Reversi MCP – Quick Start
+# Reversi MCP – Quick Start (Azure APIM Gateway)
 
 ## Architecture
 
 ```
-Claude Desktop ──stdio──▶ mcp-stdio.js ──HTTP──▶ NestJS backend (:3001)
-                                                    ├─ /mcp/tools        (GET  – list tools)
-                                                    ├─ /mcp/jsonrpc      (POST – JSON-RPC 2.0)
-                                                    └─ /mcp/tools/call   (POST – simplified REST)
+Claude Desktop ──MCP SSE──▶ Azure APIM ──REST──▶ NestJS Backend (Container Apps)
+                             (MCP Gateway)              │
+                                                        ▼
+                                                   WebSocket clients
+                                                    (browser players)
 ```
 
-The backend already runs the MCP controller (`McpModule`) alongside the
-existing WebSocket game gateway. No separate server process is needed.
+Azure API Management acts as the **MCP gateway**:
 
-The **stdio bridge** (`mcp-stdio.ts`) is a thin Node.js script that
-Claude Desktop spawns; it reads JSON-RPC from stdin, forwards it to the
-backend over HTTP, and writes responses to stdout.
+1. **Claude Desktop** connects to APIM's MCP SSE endpoint.
+2. **APIM** translates MCP tool-calls → REST HTTP requests using the
+   imported OpenAPI spec (each `operationId` → MCP tool name).
+3. **NestJS backend** processes the REST call, updates shared game state,
+   and emits events via the internal EventEmitter bridge.
+4. **GameGateway** picks up events and broadcasts to browser WebSocket
+   clients — so human players see moves made by Claude in real-time.
 
 ---
 
-## 1. Build the backend
+## 1. Deploy the backend
+
+The backend deploys automatically via GitHub Actions to Azure Container Apps.
+
+```bash
+git push origin main    # triggers .github/workflows/deploy.yml
+```
+
+Or run locally:
 
 ```bash
 cd backend
-npm install          # first time only
-npm run build        # compiles TypeScript → dist/
-```
-
-## 2. Start the backend
-
-```bash
-npm start
+npm install && npm run build && npm start
 # → 🎮 Reversi Server running on port 3001
-# → MCP controller initialised – tools available:
-#     • listRooms
-#     • createRoom
-#     • makeMove
-#     ...
 ```
 
-## 3. Verify MCP endpoints
+## 2. Deploy APIM
 
 ```bash
-# List tools
-curl http://localhost:3001/mcp/tools | jq
-
-# Create a room (simplified REST)
-curl -s -X POST http://localhost:3001/mcp/tools/call \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"createRoom","arguments":{"roomName":"Test Game"}}' | jq
-
-# JSON-RPC handshake
-curl -s -X POST http://localhost:3001/mcp/jsonrpc \
-  -H 'Content-Type: application/json' \
-  -d '{"jsonrpc":"2.0","id":1,"method":"initialize"}' | jq
+cd infra/apim
+./deploy-apim.sh
 ```
 
-## 4. Configure Claude Desktop
+The script will:
+- Resolve the backend FQDN from Azure Container Apps
+- Provision the APIM instance (Consumption tier)
+- Import the OpenAPI spec (`reversi-api.openapi.yaml`)
+- Enable the MCP Server capability on the API
+- Print the MCP endpoint URL
 
-Copy the example config, replacing the path with your local checkout:
+## 3. Configure Claude Desktop
 
-```bash
-mkdir -p ~/.config/claude-desktop
-
-# macOS / Linux:
-sed "s|__REPLACE_WITH_ABSOLUTE_PATH__|$(pwd)/..| " \
-  ../claude-desktop-config.example.json \
-  > ~/.config/claude-desktop/claude_desktop_config.json
-```
-
-Or manually create `~/.config/claude-desktop/claude_desktop_config.json`:
+Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "reversi-game": {
-      "command": "node",
-      "args": [
-        "/Users/YOU/Downloads/REVERSI/backend/dist/backend/src/mcp/mcp-stdio.js"
-      ],
-      "env": {
-        "REVERSI_API": "http://localhost:3001"
-      }
+      "url": "https://apim-reversi-prod.azure-api.net/reversi/mcp/sse"
     }
   }
 }
 ```
 
-## 5. Restart Claude Desktop
+Restart Claude Desktop — you'll see a 🔌 icon confirming the MCP connection.
 
-Quit (⌘Q) and re-open. In Settings → Developer you should see **reversi-game** listed.
+## 4. Play!
 
-## 6. Play!
+Ask Claude:
 
-Type in Claude Desktop:
+> "Create a Reversi room called 'Claude vs Human'"
 
-> I want to play Reversi. Create a room for me.
-
-Claude will call `createRoom`, display the board, and start playing.
+Then open the browser app and join the same room.  
+Claude's moves will appear on your board in real-time.
 
 ---
 
 ## Available MCP Tools
 
-| Tool | Description |
-|------|-------------|
-| `listRooms` | List active game rooms |
-| `createRoom` | Create room & auto-join as Black |
-| `joinRoom` | Join an existing room |
-| `leaveRoom` | Leave the current room |
-| `getGameState` | Full board, scores, turn info |
-| `getValidMoves` | Legal moves for current player |
-| `makeMove` | Place a piece at (row, col) |
-| `passTurn` | Skip turn (no legal moves) |
-| `getHint` | Engine-suggested best move |
-| `resignGame` | Forfeit the game |
+| Tool | REST Endpoint | Description |
+|------|--------------|-------------|
+| `listRooms` | `GET /api/game/rooms` | List all open rooms |
+| `createRoom` | `POST /api/game/rooms` | Create room & join as Black |
+| `joinRoom` | `POST /api/game/rooms/:id/join` | Join existing room |
+| `leaveRoom` | `POST /api/game/rooms/:id/leave` | Leave a room |
+| `getGameState` | `GET /api/game/rooms/:id/state` | Full board + scores |
+| `getValidMoves` | `GET /api/game/rooms/:id/valid-moves` | Legal moves list |
+| `makeMove` | `POST /api/game/rooms/:id/move` | Place a piece `{row, col}` |
+| `passTurn` | `POST /api/game/rooms/:id/pass` | Skip turn (no moves) |
+| `getHint` | `GET /api/game/rooms/:id/hint` | Engine's best move suggestion |
+| `resignGame` | `POST /api/game/rooms/:id/resign` | Forfeit the game |
 
----
+## Quick Test (curl)
 
-## Typical game flow
+```bash
+APIM="https://apim-reversi-prod.azure-api.net/reversi"
 
+# List rooms
+curl $APIM/api/game/rooms
+
+# Create a room
+curl -X POST $APIM/api/game/rooms \
+  -H "Content-Type: application/json" \
+  -d '{"roomName": "Test Room"}'
+
+# Make a move
+curl -X POST $APIM/api/game/rooms/<roomId>/move \
+  -H "Content-Type: application/json" \
+  -d '{"row": 2, "col": 3}'
 ```
-Claude → createRoom("My Game")          → room created, joined as Black
-Human  → (joins via browser)            → game starts automatically
-Claude → getGameState(roomId)           → sees board + valid moves
-Claude → makeMove(roomId, 2, 3)         → places piece, gets new board
-        ← waits for human's move →
-Claude → getGameState(roomId)           → sees updated board
-Claude → getHint(roomId)               → engine suggests best play
-Claude → makeMove(roomId, 4, 5)         → plays again
-        … repeat until gameOver …
-```
 
-## Troubleshooting
+## Infrastructure
 
-| Problem | Fix |
-|---------|-----|
-| Claude can't find server | Check config path. Restart Claude Desktop. |
-| "Connection refused" | Make sure backend is running on port 3001. |
-| Tool call error | Run `curl http://localhost:3001/mcp/tools` to verify. |
-| TypeScript errors | Run `cd backend && npm run build` to recompile. |
-
-## Files
-
-| File | Purpose |
-|------|---------|
-| `backend/src/mcp/mcp.module.ts` | NestJS module (imports controller + service) |
-| `backend/src/mcp/mcp.service.ts` | Tool definitions + implementations using real game engine |
-| `backend/src/mcp/mcp.controller.ts` | HTTP endpoints (JSON-RPC + REST) |
-| `backend/src/mcp/mcp-stdio.ts` | Stdio bridge for Claude Desktop |
-| `claude-desktop-config.example.json` | Example Claude Desktop configuration |
+| Resource | Name | Notes |
+|----------|------|-------|
+| Resource Group | `rg-reversi-prod` | All resources |
+| Container App (backend) | `ca-reversi-backend` | NestJS + Socket.io |
+| Container App (frontend) | `ca-reversi` | Angular SPA + Nginx |
+| APIM | `apim-reversi-prod` | Consumption tier, MCP gateway |
+| Key Vault | `kv-reversi-prod` | Secrets (Google OAuth, JWT) |
+| Container Registry | `acrreversiprod` | Docker images |

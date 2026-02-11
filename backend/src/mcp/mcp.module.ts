@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
 import { McpController } from './mcp.controller';
 import { McpService } from './mcp.service';
-import { RoomService } from '../game/room.service';
-import { GameService } from '../game/game.service';
-import { PlayerService } from '../game/player.service';
+import { GameModule } from '../game/game.module';
 
+/**
+ * MCP REST module — imports GameModule so that McpService
+ * operates on the **same** RoomService / GameService / PlayerService
+ * singletons shared with the WebSocket gateway.
+ */
 @Module({
+  imports: [GameModule],
   controllers: [McpController],
-  providers: [McpService, RoomService, GameService, PlayerService],
+  providers: [McpService],
   exports: [McpService],
 })
 export class McpModule {}

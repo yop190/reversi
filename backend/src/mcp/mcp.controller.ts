@@ -3,53 +3,61 @@ import {
   Post,
   Get,
   Body,
+  Param,
+  Query,
   HttpCode,
+  HttpException,
+  HttpStatus,
   Logger,
 } from '@nestjs/common';
 import { McpService, MCP_TOOLS } from './mcp.service';
 
-// ─── JSON-RPC types ─────────────────────────────────────────────────────────
+// ─── DTOs ───────────────────────────────────────────────────────────────────
 
-interface JsonRpcRequest {
-  jsonrpc: '2.0';
-  id?: string | number;
-  method: string;
-  params?: Record<string, unknown>;
+class CreateRoomDto {
+  roomName!: string;
 }
 
-interface JsonRpcResponse {
-  jsonrpc: '2.0';
-  id?: string | number;
-  result?: unknown;
-  error?: { code: number; message: string; data?: unknown };
+class MakeMoveDto {
+  row!: number;
+  col!: number;
 }
 
 // ─── Controller ─────────────────────────────────────────────────────────────
 
 /**
- * Exposes the MCP protocol over HTTP for Claude Desktop (HTTP transport) and
- * for direct curl / API-Management calls.
+ * Clean REST API for the Reversi game engine.
  *
- * Endpoints:
- *   GET  /mcp/tools           → list available tools (convenience)
- *   POST /mcp/jsonrpc         → full JSON-RPC 2.0 endpoint
- *   POST /mcp/tools/call      → simplified tool-call endpoint
+ * Azure API Management imports this specification and maps each operation
+ * to an MCP tool via its native MCP-gateway feature.  Claude Desktop
+ * connects to APIM's MCP SSE endpoint – APIM translates MCP tool-calls
+ * into these REST requests automatically.
+ *
+ * Route prefix: /api/game
  */
-@Controller('mcp')
+@Controller('api/game')
 export class McpController {
   private readonly logger = new Logger(McpController.name);
 
   constructor(private readonly mcpService: McpService) {
-    this.logger.log('MCP controller initialised – tools available:');
-    MCP_TOOLS.forEach(t => this.logger.log(`  • ${t.name}`));
+    this.logger.log('Game API controller initialised – REST endpoints ready');
   }
 
-  // ── tool listing ────────────────────────────────────────────────────────
+  // ── helper ────────────────────────────────────────────────────────────────
 
-  /**
-   * GET /mcp/tools
-   * Returns the list of tool definitions (JSON Schema).
-   */
+  private wrap(fn: () => Record<string, unknown>) {
+    try {
+      return fn();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(msg);
+      throw new HttpException(msg, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  // ── MCP tool listing (kept for debugging / documentation) ─────────────
+
+  /** GET /api/game/tools — list all MCP tool definitions */
   @Get('tools')
   listTools() {
     return {
@@ -61,96 +69,128 @@ export class McpController {
     };
   }
 
-  // ── JSON-RPC 2.0 endpoint ───────────────────────────────────────────────
+  // ── Room management ───────────────────────────────────────────────────────
 
   /**
-   * POST /mcp/jsonrpc
-   * Standard JSON-RPC 2.0 – supports `tools/list` and `tools/call`.
+   * GET /api/game/rooms
+   * @operationId listRooms
+   * List all game rooms on the server.
    */
-  @Post('jsonrpc')
-  @HttpCode(200)
-  handleJsonRpc(@Body() body: JsonRpcRequest): JsonRpcResponse {
-    const id = body.id;
-
-    try {
-      switch (body.method) {
-        // ── list tools ──
-        case 'tools/list':
-          return {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              tools: MCP_TOOLS.map(t => ({
-                name: t.name,
-                description: t.description,
-                inputSchema: t.inputSchema,
-              })),
-            },
-          };
-
-        // ── call a tool ──
-        case 'tools/call': {
-          const params = body.params ?? {};
-          const toolName = params.name as string;
-          const toolArgs = (params.arguments ?? {}) as Record<string, unknown>;
-
-          if (!toolName) {
-            return this.rpcError(id, -32602, 'Missing params.name');
-          }
-
-          const result = this.mcpService.callTool(toolName, toolArgs);
-          return { jsonrpc: '2.0', id, result };
-        }
-
-        // ── initialize (handshake) ──
-        case 'initialize':
-          return {
-            jsonrpc: '2.0',
-            id,
-            result: {
-              protocolVersion: '2024-11-05',
-              serverInfo: { name: 'reversi-mcp', version: '1.0.0' },
-              capabilities: { tools: {} },
-            },
-          };
-
-        default:
-          return this.rpcError(id, -32601, `Method not found: ${body.method}`);
-      }
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : String(err);
-      this.logger.error(`JSON-RPC error: ${msg}`);
-      return this.rpcError(id, -32603, msg);
-    }
+  @Get('rooms')
+  listRooms(
+    @Query('includeInProgress') includeInProgress?: string,
+  ) {
+    return this.wrap(() =>
+      this.mcpService.listRooms({
+        includeInProgress: includeInProgress !== 'false',
+      }),
+    );
   }
-
-  // ── simplified REST endpoint ────────────────────────────────────────────
 
   /**
-   * POST /mcp/tools/call
-   * Simplified REST endpoint — body: { name: string, arguments: {} }
+   * POST /api/game/rooms
+   * @operationId createRoom
+   * Create a new game room. The calling bot joins automatically as Black.
    */
-  @Post('tools/call')
-  @HttpCode(200)
-  callTool(@Body() body: { name: string; arguments?: Record<string, unknown> }) {
-    const toolName = body.name;
-    const toolArgs = body.arguments ?? {};
-
-    if (!toolName) {
-      return { error: 'Missing tool name in body.name' };
-    }
-
-    this.logger.log(`Tool call: ${toolName} ${JSON.stringify(toolArgs)}`);
-    return this.mcpService.callTool(toolName, toolArgs);
+  @Post('rooms')
+  @HttpCode(201)
+  createRoom(@Body() body: CreateRoomDto) {
+    return this.wrap(() =>
+      this.mcpService.createRoom({ roomName: body.roomName }),
+    );
   }
 
-  // ── helpers ─────────────────────────────────────────────────────────────
+  /**
+   * POST /api/game/rooms/:roomId/join
+   * @operationId joinRoom
+   * Join an existing room as player or spectator.
+   */
+  @Post('rooms/:roomId/join')
+  @HttpCode(200)
+  joinRoom(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.joinRoom({ roomId }));
+  }
 
-  private rpcError(
-    id: string | number | undefined,
-    code: number,
-    message: string,
-  ): JsonRpcResponse {
-    return { jsonrpc: '2.0', id, error: { code, message } };
+  /**
+   * POST /api/game/rooms/:roomId/leave
+   * @operationId leaveRoom
+   * Leave the specified room.
+   */
+  @Post('rooms/:roomId/leave')
+  @HttpCode(200)
+  leaveRoom(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.leaveRoom({ roomId }));
+  }
+
+  // ── Game state ────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/game/rooms/:roomId/state
+   * @operationId getGameState
+   * Return the full board, scores, current turn, and valid moves.
+   */
+  @Get('rooms/:roomId/state')
+  getGameState(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.getGameState({ roomId }));
+  }
+
+  /**
+   * GET /api/game/rooms/:roomId/valid-moves
+   * @operationId getValidMoves
+   * Return only the list of valid moves for the current player.
+   */
+  @Get('rooms/:roomId/valid-moves')
+  getValidMoves(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.getValidMoves({ roomId }));
+  }
+
+  // ── Game actions ──────────────────────────────────────────────────────────
+
+  /**
+   * POST /api/game/rooms/:roomId/move
+   * @operationId makeMove
+   * Place a piece at (row, col). 0-indexed.
+   */
+  @Post('rooms/:roomId/move')
+  @HttpCode(200)
+  makeMove(
+    @Param('roomId') roomId: string,
+    @Body() body: MakeMoveDto,
+  ) {
+    return this.wrap(() =>
+      this.mcpService.doMakeMove({ roomId, row: body.row, col: body.col }),
+    );
+  }
+
+  /**
+   * POST /api/game/rooms/:roomId/pass
+   * @operationId passTurn
+   * Pass (skip) the current turn when no legal moves exist.
+   */
+  @Post('rooms/:roomId/pass')
+  @HttpCode(200)
+  passTurn(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.doPassTurn({ roomId }));
+  }
+
+  /**
+   * GET /api/game/rooms/:roomId/hint
+   * @operationId getHint
+   * Ask the engine for the best move suggestion.
+   */
+  @Get('rooms/:roomId/hint')
+  getHint(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.doGetHint({ roomId }));
+  }
+
+  /**
+   * POST /api/game/rooms/:roomId/resign
+   * @operationId resignGame
+   * Resign the game. The opponent wins.
+   */
+  @Post('rooms/:roomId/resign')
+  @HttpCode(200)
+  resignGame(@Param('roomId') roomId: string) {
+    return this.wrap(() => this.mcpService.doResignGame({ roomId }));
   }
 }

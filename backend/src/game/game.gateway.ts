@@ -28,6 +28,17 @@ import { RoomService } from './room.service';
 import { GameService } from './game.service';
 import { PlayerService } from './player.service';
 import { ScoreService } from '../score/score.service';
+import {
+  gameEvents,
+  GAME_STATE_UPDATED,
+  GAME_STARTED,
+  GAME_OVER,
+  PLAYER_JOINED,
+  PLAYER_LEFT,
+  TURN_PASSED,
+  GameStateEvent,
+  PlayerEvent,
+} from './game-events';
 
 interface AuthenticatedSocket extends Socket {
   user?: {
@@ -83,6 +94,70 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     } else {
       this.logger.log('✅ Authentication is ENABLED');
     }
+
+    // ── Bridge: MCP REST events → WebSocket broadcasts ──────────
+    this.registerMcpEventBridge();
+  }
+
+  /**
+   * Listen for events emitted by McpService (REST calls) and
+   * broadcast them to the relevant WebSocket room so browser
+   * clients see moves made via the MCP / APIM channel.
+   */
+  private registerMcpEventBridge() {
+    gameEvents.on(GAME_STATE_UPDATED, (evt: GameStateEvent) => {
+      this.logger.log(`[MCP→WS] Game state update in room ${evt.roomId}`);
+      this.server?.to(evt.roomId).emit(ServerEvents.GameStateUpdate, {
+        gameState: evt.gameState,
+        message: evt.message,
+      });
+      this.broadcastLobbyUpdate();
+    });
+
+    gameEvents.on(GAME_STARTED, (evt: { roomId: string; gameState: unknown; players: unknown }) => {
+      this.logger.log(`[MCP→WS] Game started in room ${evt.roomId}`);
+      this.server?.to(evt.roomId).emit(ServerEvents.GameStarted, {
+        gameState: evt.gameState,
+        players: evt.players,
+      });
+      this.broadcastLobbyUpdate();
+    });
+
+    gameEvents.on(GAME_OVER, (evt: { roomId: string; winner: unknown; blackScore: number; whiteScore: number }) => {
+      this.logger.log(`[MCP→WS] Game over in room ${evt.roomId}`);
+      this.server?.to(evt.roomId).emit(ServerEvents.GameOver, {
+        winner: evt.winner,
+        blackScore: evt.blackScore,
+        whiteScore: evt.whiteScore,
+      });
+      this.broadcastLobbyUpdate();
+    });
+
+    gameEvents.on(PLAYER_JOINED, (evt: PlayerEvent) => {
+      this.logger.log(`[MCP→WS] Player joined room ${evt.roomId}`);
+      this.server?.to(evt.roomId).emit(ServerEvents.PlayerJoined, {
+        player: evt.player,
+        isSpectator: evt.isSpectator,
+      });
+      this.broadcastLobbyUpdate();
+    });
+
+    gameEvents.on(PLAYER_LEFT, (evt: PlayerEvent) => {
+      this.logger.log(`[MCP→WS] Player left room ${evt.roomId}`);
+      this.server?.to(evt.roomId).emit(ServerEvents.PlayerLeft, {
+        playerId: (evt.player as any)?.id,
+        message: 'MCP bot left the game',
+      });
+      this.broadcastLobbyUpdate();
+    });
+
+    gameEvents.on(TURN_PASSED, (evt: { roomId: string; gameState: unknown; player: string }) => {
+      this.logger.log(`[MCP→WS] Turn passed in room ${evt.roomId}`);
+      this.server?.to(evt.roomId).emit(ServerEvents.TurnPassed, {
+        player: evt.player,
+        gameState: evt.gameState,
+      });
+    });
   }
 
   /**
