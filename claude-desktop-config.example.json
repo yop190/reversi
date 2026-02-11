@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "reversi-game": {
+      "command": "node",
+      "args": [
+        "__REPLACE_WITH_ABSOLUTE_PATH__/backend/dist/backend/src/mcp/mcp-stdio.js"
+      ],
+      "env": {
+        "REVERSI_API": "http://localhost:3001"
+      }
+    }
+  }
+}

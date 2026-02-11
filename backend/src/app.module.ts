@@ -7,6 +7,7 @@ import { PlayerService } from './game/player.service';
 import { HealthController } from './health.controller';
 import { AuthModule } from './auth/auth.module';
 import { ScoreModule } from './score/score.module';
+import { McpModule } from './mcp/mcp.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ScoreModule } from './score/score.module';
     }),
     AuthModule,
     ScoreModule,
+    McpModule,
   ],
   controllers: [HealthController],
   providers: [GameGateway, RoomService, GameService, PlayerService],
