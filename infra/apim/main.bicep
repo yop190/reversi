@@ -40,8 +40,8 @@ resource apim 'Microsoft.ApiManagement/service@2023-09-01-preview' = {
   name: apimName
   location: location
   sku: {
-    name: 'Consumption'
-    capacity: 0
+    name: 'Developer'
+    capacity: 1
   }
   properties: {
     publisherEmail: publisherEmail
@@ -111,7 +111,7 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-09-01-pre
 <policies>
   <inbound>
     <base />
-    <cors allow-credentials="true">
+    <cors allow-credentials="false">
       <allowed-origins>
         <origin>*</origin>
       </allowed-origins>

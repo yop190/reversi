@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "reversi-game": {
-      "url": "https://apim-reversi-prod.azure-api.net/reversi/mcp/sse"
+      "url": "https://apim-reversi-prod.azure-api.net/reversi-game-api-mcp/mcp"
     }
   }
 }

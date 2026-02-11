@@ -3,22 +3,23 @@
 ## Architecture
 
 ```
-Claude Desktop ──MCP SSE──▶ Azure APIM ──REST──▶ NestJS Backend (Container Apps)
-                             (MCP Gateway)              │
-                                                        ▼
-                                                   WebSocket clients
-                                                    (browser players)
+Claude Desktop ──MCP──▶ Azure APIM (Developer tier) ──REST──▶ NestJS Backend (Container Apps)
+VS Code Agent            (MCP Gateway, type=mcp)                     │
+                                                                     ▼
+                                                                WebSocket clients
+                                                                 (browser players)
 ```
 
 Azure API Management acts as the **MCP gateway**:
 
-1. **Claude Desktop** connects to APIM's MCP SSE endpoint.
-2. **APIM** translates MCP tool-calls → REST HTTP requests using the
+1. **MCP clients** (Claude Desktop, VS Code, MCP Inspector) connect to APIM's
+   Streamable HTTP endpoint at `/reversi-game-api-mcp/mcp`.
+2. **APIM** translates MCP `tools/call` → REST HTTP requests using the
    imported OpenAPI spec (each `operationId` → MCP tool name).
 3. **NestJS backend** processes the REST call, updates shared game state,
    and emits events via the internal EventEmitter bridge.
 4. **GameGateway** picks up events and broadcasts to browser WebSocket
-   clients — so human players see moves made by Claude in real-time.
+   clients — so human players see moves made by AI in real-time.
 
 ---
 
@@ -47,26 +48,43 @@ cd infra/apim
 
 The script will:
 - Resolve the backend FQDN from Azure Container Apps
-- Provision the APIM instance (Consumption tier)
+- Provision the APIM instance (Developer tier — required for MCP)
 - Import the OpenAPI spec (`reversi-api.openapi.yaml`)
-- Enable the MCP Server capability on the API
+- Create the MCP API (type=mcp) with tools mapped to REST operations
 - Print the MCP endpoint URL
 
-## 3. Configure Claude Desktop
+## 3. Configure your MCP client
 
-Add this to `~/Library/Application Support/Claude/claude_desktop_config.json`:
+### Claude Desktop
+
+Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "reversi-game": {
-      "url": "https://apim-reversi-prod.azure-api.net/reversi/mcp/sse"
+      "url": "https://apim-reversi-prod.azure-api.net/reversi-game-api-mcp/mcp"
     }
   }
 }
 ```
 
-Restart Claude Desktop — you'll see a 🔌 icon confirming the MCP connection.
+### VS Code (GitHub Copilot Agent Mode)
+
+Already configured in `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "reversi-game": {
+      "type": "http",
+      "url": "https://apim-reversi-prod.azure-api.net/reversi-game-api-mcp/mcp"
+    }
+  }
+}
+```
+
+Use the `MCP: Add Server` command palette or edit the file directly.
 
 ## 4. Play!
 
@@ -96,21 +114,31 @@ Claude's moves will appear on your board in real-time.
 
 ## Quick Test (curl)
 
+### REST API (through APIM)
+
 ```bash
 APIM="https://apim-reversi-prod.azure-api.net/reversi"
 
-# List rooms
 curl $APIM/api/game/rooms
+curl -X POST $APIM/api/game/rooms -H "Content-Type: application/json" -d '{"roomName": "Test"}'
+```
 
-# Create a room
-curl -X POST $APIM/api/game/rooms \
-  -H "Content-Type: application/json" \
-  -d '{"roomName": "Test Room"}'
+### MCP Protocol (Streamable HTTP)
 
-# Make a move
-curl -X POST $APIM/api/game/rooms/<roomId>/move \
-  -H "Content-Type: application/json" \
-  -d '{"row": 2, "col": 3}'
+```bash
+MCP="https://apim-reversi-prod.azure-api.net/reversi-game-api-mcp/mcp"
+
+# Initialize
+curl -s -m 10 $MCP -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","id":1,"params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'
+
+# List tools
+curl -s -m 10 $MCP -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":2}'
+
+# Call a tool
+curl -s -m 10 $MCP -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"tools/call","id":3,"params":{"name":"listRooms","arguments":{}}}'
 ```
 
 ## Infrastructure
@@ -120,6 +148,6 @@ curl -X POST $APIM/api/game/rooms/<roomId>/move \
 | Resource Group | `rg-reversi-prod` | All resources |
 | Container App (backend) | `ca-reversi-backend` | NestJS + Socket.io |
 | Container App (frontend) | `ca-reversi` | Angular SPA + Nginx |
-| APIM | `apim-reversi-prod` | Consumption tier, MCP gateway |
+| APIM | `apim-reversi-prod` | Developer tier, MCP gateway |
 | Key Vault | `kv-reversi-prod` | Secrets (Google OAuth, JWT) |
 | Container Registry | `acrreversiprod` | Docker images |
