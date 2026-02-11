@@ -145,7 +145,7 @@ jobs:
 
       - name: Install ESLint Security Plugin
         run: |
-          npm install eslint @eslint/js eslint-plugin-security typescript-eslint --save-dev
+          npm install eslint@^9.0.0 @eslint/js@^9.0.0 eslint-plugin-security typescript-eslint@^8.0.0 --save-dev --legacy-peer-deps
 
       - name: Create ESLint Security Config
         run: |
